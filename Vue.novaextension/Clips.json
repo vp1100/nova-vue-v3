@@ -1,0 +1,116 @@
+{
+  "clips": [
+    {
+      "name": "Vue SFC",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "vuesfc",
+      "content": "<template>\n  $1\n</template>\n\n<script setup lang=\"ts\">\n$2\n</script>\n\n<style scoped>\n$3\n</style>"
+    },
+    {
+      "name": "Vue SFC with Props",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "vueprops",
+      "content": "<template>\n  <section class=\"${1:root}\">\n    $2\n  </section>\n</template>\n\n<script setup lang=\"ts\">\ninterface Props {\n  $3\n}\n\nconst props = defineProps<Props>()\n</script>\n\n<style scoped>\n.${1:root} {\n  $4\n}\n</style>"
+    },
+    {
+      "name": "defineProps",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "defineprops",
+      "content": "interface Props {\n  $1\n}\n\nconst props = defineProps<Props>()"
+    },
+    {
+      "name": "defineEmits",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "defineemits",
+      "content": "const emit = defineEmits<{\n  ${1:change}: [${2:payload}]\n}>()"
+    },
+    {
+      "name": "defineModel",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "definemodel",
+      "content": "const model = defineModel<${1:string}>()"
+    },
+    {
+      "name": "ref",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "ref",
+      "content": "const ${1:value} = ref<${2:string}>(${3:''})"
+    },
+    {
+      "name": "reactive",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "reactive",
+      "content": "const ${1:state} = reactive({\n  $2\n})"
+    },
+    {
+      "name": "computed",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "computed",
+      "content": "const ${1:value} = computed(() => $2)"
+    },
+    {
+      "name": "watch",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "watch",
+      "content": "watch(${1:source}, (${2:value}, ${3:oldValue}) => {\n  $4\n})"
+    },
+    {
+      "name": "onMounted",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "onmounted",
+      "content": "onMounted(() => {\n  $1\n})"
+    },
+    {
+      "name": "Pinia Store Usage",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "pinia",
+      "content": "const ${1:store} = use${2:Main}Store()"
+    },
+    {
+      "name": "v-if / v-else",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "vif",
+      "content": "<template v-if=\"${1:condition}\">\n  $2\n</template>\n<template v-else>\n  $3\n</template>"
+    },
+    {
+      "name": "v-for",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "vfor",
+      "content": "<${1:div} v-for=\"${2:item} in ${3:items}\" :key=\"${2:item}.${4:id}\">\n  $5\n</${1:div}>"
+    },
+    {
+      "name": "slot",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "slot",
+      "content": "<slot>$1</slot>"
+    },
+    {
+      "name": "named slot",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "namedslot",
+      "content": "<template #${1:default}=\"${2:slotProps}\">\n  $3\n</template>"
+    },
+    {
+      "name": "component props/events",
+      "scope": "editor",
+      "syntax": "vue",
+      "trigger": "component",
+      "content": "<${1:Component}\n  :${2:prop}=\"${3:value}\"\n  @${4:event}=\"${5:handler}\"\n/>"
+    }
+  ]
+}

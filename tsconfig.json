@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "ignoreDeprecations": "6.0",
+    "rootDir": "src",
+    "outDir": "Vue.novaextension/Scripts",
+    "strict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "types": [],
+    "typeRoots": [
+      "types"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "types/**/*.d.ts"
+  ]
+}

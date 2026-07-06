@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<syntax name="vue">
+  <meta>
+    <name>Vue</name>
+    <type>markup</type>
+    <preferred-file-extension>vue</preferred-file-extension>
+    <default-extension>vue</default-extension>
+    <parent>html</parent>
+  </meta>
+
+  <detectors>
+    <extension priority="1.0">vue</extension>
+  </detectors>
+
+  <indentation>
+    <increase>
+      <expression>(?x)
+        (&lt;(?!\?|(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)\b)
+        ([-_\.A-Za-z0-9]+)(?=\s|&gt;)\b[^&gt;]*&gt;[^&lt;]*$)
+        |(&lt;!--\s*$)
+      </expression>
+    </increase>
+    <decrease>
+      <expression>(?x)
+        ^\s*
+        (&lt;/[-_\.A-Za-z0-9]+\b[^&gt;]*&gt;
+          |--&gt;
+        )</expression>
+    </decrease>
+  </indentation>
+
+  <comments>
+    <multiline>
+      <starts-with>
+        <expression>&lt;!--</expression>
+      </starts-with>
+      <ends-with>
+        <expression>--&gt;</expression>
+      </ends-with>
+    </multiline>
+  </comments>
+
+  <brackets>
+    <pair open="{" close="}" />
+    <pair open="[" close="]" />
+    <pair open="(" close=")" />
+  </brackets>
+
+  <surrounding-pairs>
+    <pair open="{" close="}" />
+    <pair open="[" close="]" />
+    <pair open="(" close=")" />
+    <pair open="&apos;" close="&apos;" />
+    <pair open="&quot;" close="&quot;" />
+    <pair open="`" close="`" />
+    <pair open="“" close="”" />
+    <pair open="‘" close="’" />
+  </surrounding-pairs>
+
+  <tree-sitter>
+    <highlights />
+    <injections />
+    <folds />
+    <symbols />
+    <text-checking />
+    <tag-matching />
+  </tree-sitter>
+</syntax>

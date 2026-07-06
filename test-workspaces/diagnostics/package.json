@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "name": "nova-vue-diagnostics-fixtures",
+  "version": "0.0.0",
+  "dependencies": {
+    "vue": "^3.5.0",
+    "typescript": "^5.9.0"
+  }
+}

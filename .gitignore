@@ -1,0 +1,6 @@
+node_modules/
+Vue.novaextension/Support/server/node_modules/
+build/
+.nova/
+.DS_Store
+npm-debug.log*

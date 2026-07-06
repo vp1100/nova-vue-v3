@@ -1,0 +1,901 @@
+{
+  "identifier": "vp.vue",
+  "name": "Vue",
+  "organization": "vp",
+  "vendor": "vp1100",
+  "description": "Vue language support for Nova using @vue/language-server v3.",
+  "version": "0.1.0",
+  "bugs": "https://github.com/vp1100/nova-vue-v3/issues",
+  "repository": "https://github.com/vp1100/nova-vue-v3",
+  "homepage": "https://github.com/vp1100/nova-vue-v3",
+  "categories": [
+    "languages",
+    "completions",
+    "issues",
+    "commands"
+  ],
+  "min_runtime": "10.0",
+  "main": "main.js",
+  "activationEvents": [
+    "onLanguage:vue",
+    "onWorkspaceContains:*.vue",
+    "onWorkspaceContains:package.json",
+    "onWorkspaceContains:vue.config.*",
+    "onWorkspaceContains:vite.config.*",
+    "onWorkspaceContains:nuxt.config.*"
+  ],
+  "entitlements": {
+    "clipboard": true,
+    "process": true,
+    "requests": false,
+    "filesystem": "readonly"
+  },
+  "commands": {
+    "extensions": [
+      {
+        "title": "Restart Vue Language Server",
+        "command": "vue.restartLanguageServer"
+      },
+      {
+        "title": "Show Vue Server Status",
+        "command": "vue.showServerStatus"
+      },
+      {
+        "title": "Copy Vue Debug Info",
+        "command": "vue.copyDebugInfo"
+      },
+      {
+        "title": "Copy Vue LSP Capabilities",
+        "command": "vue.copyLspCapabilities"
+      },
+      {
+        "title": "Probe Vue LSP at Cursor",
+        "command": "vue.probeLspAtCursor"
+      },
+      {
+        "title": "Re-detect Vue Toolchain",
+        "command": "vue.redetectToolchain"
+      },
+      {
+        "title": "Reset Vue Global Settings",
+        "command": "vue.resetGlobalSettings"
+      },
+      {
+        "title": "Reset Vue Project Overrides",
+        "command": "vue.resetWorkspaceSettings"
+      }
+    ],
+    "command-palette": [
+      {
+        "title": "Vue: Restart Language Server",
+        "command": "vue.restartLanguageServer"
+      },
+      {
+        "title": "Vue: Show Server Status",
+        "command": "vue.showServerStatus"
+      },
+      {
+        "title": "Vue: Copy Debug Info",
+        "command": "vue.copyDebugInfo"
+      },
+      {
+        "title": "Vue: Copy LSP Capabilities",
+        "command": "vue.copyLspCapabilities"
+      },
+      {
+        "title": "Vue: Probe LSP at Cursor",
+        "command": "vue.probeLspAtCursor"
+      },
+      {
+        "title": "Vue: Quick Fix",
+        "command": "vue.quickFix"
+      },
+      {
+        "title": "Vue: Add Missing Imports",
+        "command": "vue.addMissingImports"
+      },
+      {
+        "title": "Vue: Remove Unused Imports",
+        "command": "vue.removeUnusedImports"
+      },
+      {
+        "title": "Vue: Organize Imports",
+        "command": "vue.organizeImports"
+      },
+      {
+        "title": "Vue: Re-detect Toolchain",
+        "command": "vue.redetectToolchain"
+      },
+      {
+        "title": "Vue: Open Extension Settings",
+        "command": "vue.openSettings"
+      },
+      {
+        "title": "Vue: Reset Global Settings",
+        "command": "vue.resetGlobalSettings"
+      },
+      {
+        "title": "Vue: Reset Project Overrides",
+        "command": "vue.resetWorkspaceSettings"
+      }
+    ],
+    "editor": [
+      {
+        "title": "Rename Symbol",
+        "command": "vue.renameSymbol",
+        "filters": {
+          "syntaxes": [
+            "vue"
+          ]
+        }
+      },
+      {
+        "title": "Quick Fix",
+        "command": "vue.quickFix",
+        "filters": {
+          "syntaxes": [
+            "vue"
+          ]
+        }
+      },
+      {
+        "title": "Add Missing Imports",
+        "command": "vue.addMissingImports",
+        "filters": {
+          "syntaxes": [
+            "vue"
+          ]
+        }
+      },
+      {
+        "title": "Remove Unused Imports",
+        "command": "vue.removeUnusedImports",
+        "filters": {
+          "syntaxes": [
+            "vue"
+          ]
+        }
+      },
+      {
+        "title": "Organize Imports",
+        "command": "vue.organizeImports",
+        "filters": {
+          "syntaxes": [
+            "vue"
+          ]
+        }
+      }
+    ]
+  },
+  "config": [
+    {
+      "title": "Workspace",
+      "description": "Project discovery and file watching behavior.",
+      "type": "section",
+      "children": [
+        {
+          "title": "Reset Global Settings",
+          "description": "Restore all Vue global settings to their default values.",
+          "type": "command",
+          "command": "vue.resetGlobalSettings"
+        },
+        {
+          "key": "vue.workspace.discovery.enabled",
+          "title": "Project Discovery",
+          "description": "Search nested project roots when resolving Vue and TypeScript toolchains.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.workspace.watchConfigFiles.enabled",
+          "title": "Watch Config Files",
+          "description": "Watch tsconfig, jsconfig, Vite, Nuxt, and Vue config files for toolchain restarts.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.workspace.watchPackageFiles.enabled",
+          "title": "Watch Package Files",
+          "description": "Watch package and toolchain package files for toolchain restarts.",
+          "type": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "title": "Runtime & Paths",
+      "description": "Executables, SDK paths, and runtime resource limits.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.node.path",
+          "title": "Node Executable",
+          "description": "Path to Node.js. Leave empty to use /usr/bin/env node.",
+          "type": "path",
+          "allowFiles": true,
+          "allowFolders": false
+        },
+        {
+          "key": "vue.languageServer.path",
+          "title": "Vue Language Server",
+          "description": "Optional explicit vue-language-server executable or JavaScript entry point.",
+          "type": "path",
+          "allowFiles": true,
+          "allowFolders": false
+        },
+        {
+          "key": "vue.typescript.tsdk",
+          "title": "TypeScript SDK",
+          "description": "Optional explicit TypeScript lib directory.",
+          "type": "path",
+          "allowFiles": false,
+          "allowFolders": true
+        },
+        {
+          "key": "vue.maxOldSpaceSize",
+          "title": "Node Memory Limit",
+          "description": "Max old-space memory for the Vue language server, in MB.",
+          "type": "number",
+          "default": 2048,
+          "min": 1024,
+          "max": 16384
+        },
+        {
+          "key": "vue.memory.autoRetry.enabled",
+          "title": "Auto Retry After Memory Error",
+          "description": "Retry once with a higher temporary memory limit if the Vue language server or tsserver runs out of memory.",
+          "type": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "title": "Vue Language Server",
+      "description": "Vue language server process and Vue-native language features.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.server.enabled",
+          "title": "Enable",
+          "description": "Start the Vue language server for .vue files.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.server.restartOnConfigChange",
+          "title": "Restart On Configuration Change",
+          "description": "Restart the Vue language server automatically after Vue extension settings change.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.completion.enabled",
+          "title": "Completions",
+          "description": "Enable Vue language server completions when supported by Nova.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.completion.autoImport",
+          "title": "Auto Import Completions",
+          "description": "Allow Vue/TypeScript completion items that can add imports.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.codeActions.enabled",
+          "title": "Code Actions",
+          "description": "Enable code actions from the Vue language server and allow code action handling in this extension.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.diagnostics.vue.enabled",
+          "title": "Diagnostics",
+          "description": "Request diagnostics from Vue Language Server when supported.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.proxy.fallbackToVueLanguageServer.enabled",
+          "title": "Fallback To Language Server",
+          "description": "Forward language feature requests to Vue Language Server when the TypeScript proxy cannot answer.",
+          "type": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "title": "TypeScript",
+      "description": "TypeScript-backed Vue features powered by the tsserver proxy.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.typescript.enabled",
+          "title": "Features",
+          "description": "Enable TypeScript-backed Vue features. When disabled, the proxy avoids syncing .vue files to tsserver unless another enabled feature requires it.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.typescript.navigation.enabled",
+          "title": "Navigation",
+          "description": "Enable TypeScript-backed hover, go to definition, and find references in .vue files.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.typescript.rename.enabled",
+          "title": "Rename",
+          "description": "Enable TypeScript-backed prepare rename and rename in .vue files.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.typescript.codeActions.enabled",
+          "title": "TypeScript Code Actions",
+          "description": "Enable TypeScript-backed quick fixes and import actions in .vue files.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.diagnostics.enabled",
+          "title": "Diagnostics",
+          "description": "Enable Vue diagnostics in .vue files.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.diagnostics.typescript.enabled",
+          "title": "TypeScript Diagnostics",
+          "description": "Show TypeScript diagnostics from the Vue tsserver proxy.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.diagnostics.onChange.enabled",
+          "title": "On Change",
+          "description": "Run TypeScript diagnostics after .vue files change.",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "vue.diagnostics.onSave.enabled",
+          "title": "On Save",
+          "description": "Run TypeScript diagnostics when .vue files are saved.",
+          "type": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "title": "Advanced",
+      "description": "Debug logging and raw initialization options.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.debug",
+          "title": "Debug Logs",
+          "description": "Write compact Vue extension debug logs to Nova's Extension Console.",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "key": "vue.lsp.logs",
+          "title": "LSP Logs",
+          "description": "Temporarily enable Nova LanguageClient JSON-RPC logging for Vue language server traffic. This can be noisy.",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "key": "vue.initializationOptions",
+          "title": "Initialization Options JSON",
+          "description": "Advanced raw JSON merged into the LSP initialize request. Leave empty for no extra options.",
+          "type": "text",
+          "default": ""
+        }
+      ]
+    }
+  ],
+  "configWorkspace": [
+    {
+      "title": "Workspace",
+      "description": "Workspace override. Project discovery and file watching behavior.",
+      "type": "section",
+      "children": [
+        {
+          "title": "Reset Project Overrides",
+          "description": "Remove all Vue project overrides and inherit global settings.",
+          "type": "command",
+          "command": "vue.resetWorkspaceSettings"
+        },
+        {
+          "key": "vue.workspace.discovery.enabled",
+          "title": "Project Discovery",
+          "description": "Nested project root discovery during toolchain resolution.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.workspace.watchConfigFiles.enabled",
+          "title": "Watch Config Files",
+          "description": "Watching config files that trigger toolchain restarts.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.workspace.watchPackageFiles.enabled",
+          "title": "Watch Package Files",
+          "description": "Watching package and toolchain package files.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        }
+      ]
+    },
+    {
+      "title": "Runtime & Paths",
+      "description": "Workspace override. Executables, SDK paths, and runtime resource limits.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.node.path",
+          "title": "Node Executable",
+          "description": "Path to Node.js. Leave empty to use /usr/bin/env node.",
+          "type": "path",
+          "allowFiles": true,
+          "allowFolders": false
+        },
+        {
+          "key": "vue.languageServer.path",
+          "title": "Vue Language Server",
+          "description": "vue-language-server executable or JavaScript entry point.",
+          "type": "path",
+          "allowFiles": true,
+          "allowFolders": false
+        },
+        {
+          "key": "vue.typescript.tsdk",
+          "title": "TypeScript SDK",
+          "description": "TypeScript lib directory.",
+          "type": "path",
+          "allowFiles": false,
+          "allowFolders": true
+        },
+        {
+          "key": "vue.maxOldSpaceSize",
+          "title": "Node Memory Limit",
+          "description": "Max old-space memory for the Vue language server, in MB.",
+          "type": "number",
+          "default": 2048,
+          "min": 1024,
+          "max": 16384
+        },
+        {
+          "key": "vue.memory.autoRetry.enabled",
+          "title": "Auto Retry After Memory Error",
+          "description": "Retry once with a higher temporary memory limit if the Vue language server or tsserver runs out of memory.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        }
+      ]
+    },
+    {
+      "title": "Vue Language Server",
+      "description": "Workspace override. Vue language server process and Vue-native language features.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.server.enabled",
+          "title": "Enable",
+          "description": "Starting the Vue language server.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.server.restartOnConfigChange",
+          "title": "Restart On Configuration Change",
+          "description": "Automatic restart after Vue extension settings change.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.completion.enabled",
+          "title": "Completions",
+          "description": "Vue language server completions.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.completion.autoImport",
+          "title": "Auto Import Completions",
+          "description": "Completion items that can add imports.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.codeActions.enabled",
+          "title": "Code Actions",
+          "description": "Enable code actions from the Vue language server and allow code action handling in this extension.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.diagnostics.vue.enabled",
+          "title": "Diagnostics",
+          "description": "Vue Language Server diagnostics.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.proxy.fallbackToVueLanguageServer.enabled",
+          "title": "Fallback To Language Server",
+          "description": "Forwarding unresolved proxy requests to Vue Language Server.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        }
+      ]
+    },
+    {
+      "title": "TypeScript",
+      "description": "Workspace override. TypeScript-backed Vue features powered by the tsserver proxy.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.typescript.enabled",
+          "title": "Features",
+          "description": "TypeScript-backed Vue features.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.typescript.navigation.enabled",
+          "title": "Navigation",
+          "description": "TypeScript-backed hover, go to definition, and find references in .vue files.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.typescript.rename.enabled",
+          "title": "Rename",
+          "description": "TypeScript-backed prepare rename and rename in .vue files.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.typescript.codeActions.enabled",
+          "title": "TypeScript Code Actions",
+          "description": "Enable TypeScript-backed quick fixes and import actions.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.diagnostics.enabled",
+          "title": "Diagnostics",
+          "description": "Vue diagnostics in .vue files.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.diagnostics.typescript.enabled",
+          "title": "TypeScript Diagnostics",
+          "description": "TypeScript diagnostics from the Vue tsserver proxy.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.diagnostics.onChange.enabled",
+          "title": "On Change",
+          "description": "TypeScript diagnostics after .vue files change.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        },
+        {
+          "key": "vue.diagnostics.onSave.enabled",
+          "title": "On Save",
+          "description": "TypeScript diagnostics when .vue files are saved.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
+        }
+      ]
+    },
+    {
+      "title": "Advanced",
+      "description": "Workspace override. Raw initialization options.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.initializationOptions",
+          "title": "Initialization Options JSON",
+          "description": "Advanced raw JSON merged into the LSP initialize request. Leave empty for no extra options.",
+          "type": "text",
+          "default": ""
+        }
+      ]
+    }
+  ]
+}

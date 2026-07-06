@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "description": "Bundled Vue language server fallback for the Nova Vue extension.",
+  "dependencies": {
+    "@vue/language-server": "^3.0.0",
+    "typescript": "^5.8.0"
+  }
+}

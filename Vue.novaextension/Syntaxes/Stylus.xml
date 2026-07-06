@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<syntax name="stylus">
+  <meta>
+    <name>Stylus</name>
+    <type>stylesheet</type>
+    <preferred-file-extension>styl</preferred-file-extension>
+  </meta>
+
+  <detectors>
+    <extension priority="1.0">styl</extension>
+    <extension priority="1.0">stylus</extension>
+  </detectors>
+
+  <comments>
+    <single>
+      <expression>//</expression>
+    </single>
+  </comments>
+
+  <injection>
+    <expression>^(stylus|styl|Stylus)$</expression>
+  </injection>
+
+  <tree-sitter>
+    <highlights path="stylus/highlights.scm" />
+  </tree-sitter>
+</syntax>
