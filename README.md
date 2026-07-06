@@ -2,7 +2,7 @@
 
 Vue language support for Nova, powered by `@vue/language-server` v3 and a local TypeScript-aware LSP proxy.
 
-Maintained by [vp1100](https://github.com/vp1100). Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) extension by [Tommaso Negri](https://github.com/tommasongr).
+Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) extension by [Tommaso Negri](https://github.com/tommasongr).
 
 ## Features
 

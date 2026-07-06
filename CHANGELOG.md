@@ -2,10 +2,9 @@
 
 ## 0.1.1
 
-- Fixed diagnostics handling for Vue files.
-- Merged Vue and TypeScript diagnostics so one source no longer clears the other.
+- Fixed `.vue` diagnostics so Vue and TypeScript results are merged instead of one source clearing the other.
 - Added Vue diagnostics pull support through Volar workspace diagnostics.
-- Added diagnostics trigger settings for open, change, and save.
+- Added settings for running diagnostics on file open, change, and save.
 - Added workspace overrides for diagnostics triggers.
 - Added smoke test coverage for Vue parse diagnostics.
 

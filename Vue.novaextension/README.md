@@ -2,7 +2,7 @@
 
 Vue language support for Nova, powered by `@vue/language-server` v3.
 
-Maintained by [vp1100](https://github.com/vp1100). Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) extension by [Tommaso Negri](https://github.com/tommasongr).
+Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) extension by [Tommaso Negri](https://github.com/tommasongr).
 
 ## What You Get
 
@@ -78,6 +78,8 @@ The extension includes settings for:
 - TypeScript-backed navigation, rename, diagnostics, and code actions.
 - Debug logging and raw initialization options.
 
+Diagnostics can run when a `.vue` file is opened, changed, or saved. Those triggers are enabled by default and can be changed globally or per workspace when a project needs quieter diagnostics.
+
 Global debug and LSP log settings intentionally stay global-only. Project settings can inherit global booleans or override them with enabled/disabled tri-state controls.
 
 ## Troubleshooting
@@ -91,3 +93,7 @@ Enable `LSP Logs` only while debugging protocol-level behavior; those logs can b
 ## Credits
 
 Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) extension by [Tommaso Negri](https://github.com/tommasongr).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.

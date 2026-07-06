@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- Fixed `.vue` diagnostics so Vue and TypeScript results are merged instead of one source clearing the other.
+- Added Vue diagnostics pull support through Volar workspace diagnostics.
+- Added settings for running diagnostics on file open, change, and save.
+- Added workspace overrides for diagnostics triggers.
+- Added smoke test coverage for Vue parse diagnostics.
+
 ## 0.1.0
 
 - Initial Nova Vue extension release.
