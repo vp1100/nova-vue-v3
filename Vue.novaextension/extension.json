@@ -4,7 +4,7 @@
   "organization": "vp",
   "vendor": "vp1100",
   "description": "Vue language support for Nova using @vue/language-server v3.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "bugs": "https://github.com/vp1100/nova-vue-v3/issues",
   "repository": "https://github.com/vp1100/nova-vue-v3",
   "homepage": "https://github.com/vp1100/nova-vue-v3",
@@ -351,18 +351,32 @@
           "description": "Show TypeScript diagnostics from the Vue tsserver proxy.",
           "type": "boolean",
           "default": true
+        }
+      ]
+    },
+    {
+      "title": "Diagnostic Triggers",
+      "description": "When Vue and TypeScript diagnostics run for .vue files.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.diagnostics.onOpen.enabled",
+          "title": "On Open",
+          "description": "Run diagnostics when .vue files are opened.",
+          "type": "boolean",
+          "default": true
         },
         {
           "key": "vue.diagnostics.onChange.enabled",
           "title": "On Change",
-          "description": "Run TypeScript diagnostics after .vue files change.",
+          "description": "Run diagnostics after .vue files change.",
           "type": "boolean",
           "default": true
         },
         {
           "key": "vue.diagnostics.onSave.enabled",
           "title": "On Save",
-          "description": "Run TypeScript diagnostics when .vue files are saved.",
+          "description": "Run diagnostics when .vue files are saved.",
           "type": "boolean",
           "default": true
         }
@@ -836,11 +850,40 @@
             ]
           ],
           "radio": true
+        }
+      ]
+    },
+    {
+      "title": "Diagnostic Triggers",
+      "description": "Workspace override. When Vue and TypeScript diagnostics run for .vue files.",
+      "type": "section",
+      "children": [
+        {
+          "key": "vue.diagnostics.onOpen.enabled",
+          "title": "On Open",
+          "description": "Run diagnostics when .vue files are opened.",
+          "type": "enum",
+          "default": "global",
+          "values": [
+            [
+              "global",
+              "Global"
+            ],
+            [
+              "enabled",
+              "Enabled"
+            ],
+            [
+              "disabled",
+              "Disabled"
+            ]
+          ],
+          "radio": true
         },
         {
           "key": "vue.diagnostics.onChange.enabled",
           "title": "On Change",
-          "description": "TypeScript diagnostics after .vue files change.",
+          "description": "Run diagnostics after .vue files change.",
           "type": "enum",
           "default": "global",
           "values": [
@@ -862,7 +905,7 @@
         {
           "key": "vue.diagnostics.onSave.enabled",
           "title": "On Save",
-          "description": "TypeScript diagnostics when .vue files are saved.",
+          "description": "Run diagnostics when .vue files are saved.",
           "type": "enum",
           "default": "global",
           "values": [

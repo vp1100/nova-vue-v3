@@ -32,7 +32,7 @@ const scenarios = [
     options: {
       proxy: { fallbackToVueLanguageServer: false },
       vue: {
-        diagnostics: { enabled: false, vue: false, typescript: false, onChange: false, onSave: false },
+        diagnostics: { enabled: false, vue: false, typescript: false, onOpen: false, onChange: false, onSave: false },
         codeActions: { enabled: false },
         completion: { enabled: false, autoImport: false },
         typescript: {
@@ -60,7 +60,7 @@ const scenarios = [
     options: {
       proxy: { fallbackToVueLanguageServer: false },
       vue: {
-        diagnostics: { enabled: false, vue: false, typescript: false, onChange: false, onSave: false },
+        diagnostics: { enabled: false, vue: false, typescript: false, onOpen: false, onChange: false, onSave: false },
         codeActions: { enabled: false },
         completion: { enabled: true, autoImport: true },
         typescript: {
@@ -87,7 +87,7 @@ const scenarios = [
     options: {
       proxy: { fallbackToVueLanguageServer: false },
       vue: {
-        diagnostics: { enabled: true, vue: false, typescript: true, onChange: true, onSave: false },
+        diagnostics: { enabled: true, vue: false, typescript: true, onOpen: true, onChange: true, onSave: false },
         codeActions: { enabled: false },
         completion: { enabled: false, autoImport: false },
         typescript: {
@@ -110,11 +110,38 @@ const scenarios = [
     }
   },
   {
+    name: "diagnostic triggers off",
+    options: {
+      proxy: { fallbackToVueLanguageServer: false },
+      vue: {
+        diagnostics: { enabled: true, vue: true, typescript: true, onOpen: false, onChange: false, onSave: false },
+        codeActions: { enabled: false },
+        completion: { enabled: false, autoImport: false },
+        typescript: {
+          enabled: true,
+          navigation: false,
+          hover: false,
+          definition: false,
+          references: false,
+          rename: false,
+          codeActions: false
+        }
+      }
+    },
+    async exercise(client) {
+      await client.wait(1300);
+    },
+    expect: {
+      noDiagnostics: true,
+      forbiddenCommands: ["syntacticDiagnosticsSync", "semanticDiagnosticsSync", "suggestionDiagnosticsSync", "getCodeFixes", "_vue:quickinfo"]
+    }
+  },
+  {
     name: "fallback off",
     options: {
       proxy: { fallbackToVueLanguageServer: false },
       vue: {
-        diagnostics: { enabled: false, vue: false, typescript: false, onChange: false, onSave: false },
+        diagnostics: { enabled: false, vue: false, typescript: false, onOpen: false, onChange: false, onSave: false },
         codeActions: { enabled: false },
         completion: { enabled: false, autoImport: false },
         typescript: {
@@ -145,7 +172,7 @@ const scenarios = [
     options: {
       proxy: { fallbackToVueLanguageServer: false },
       vue: {
-        diagnostics: { enabled: false, vue: false, typescript: false, onChange: false, onSave: false },
+        diagnostics: { enabled: false, vue: false, typescript: false, onOpen: false, onChange: false, onSave: false },
         codeActions: { enabled: false },
         completion: { enabled: false, autoImport: false },
         typescript: {

@@ -22,12 +22,16 @@ let nextTsserverId = 1;
 
 const clientToVueRequests = new Map();
 const vueToClientRequests = new Map();
+const proxyToVueRequests = new Map();
 const pendingTsserver = new Map();
 const documents = new Map();
 const openedTsFiles = new Set();
 const diagnosticsTimers = new Map();
+const vueDiagnosticsTimers = new Map();
 const diagnosticsCache = new Map();
-const TSSERVER_REQUEST_TIMEOUT_MS = 15000;
+const vueDiagnosticsByUri = new Map();
+const tsDiagnosticsByUri = new Map();
+const SERVER_REQUEST_TIMEOUT_MS = 15000;
 const DIAGNOSTICS_CHANGE_DELAY_MS = 900;
 const DIAGNOSTICS_SAVE_DELAY_MS = 100;
 const DIAGNOSTICS_CACHE_TTL_MS = 5000;
@@ -38,8 +42,9 @@ let serverCapabilities = null;
 let vueCodeActionProvider = false;
 let vueDiagnosticsEnabled = true;
 let tsDiagnosticsEnabled = true;
-let tsDiagnosticsOnChangeEnabled = true;
-let tsDiagnosticsOnSaveEnabled = true;
+let diagnosticsOnOpenEnabled = true;
+let diagnosticsOnChangeEnabled = true;
+let diagnosticsOnSaveEnabled = true;
 let codeActionsEnabled = true;
 let completionEnabled = true;
 let fallbackToVueLanguageServerEnabled = true;
@@ -118,6 +123,12 @@ tsserver.on("exit", (code, signal) => {
 process.on("exit", () => {
   for (const timer of diagnosticsTimers.values()) {
     clearTimeout(timer);
+  }
+  for (const timer of vueDiagnosticsTimers.values()) {
+    clearTimeout(timer);
+  }
+  for (const pending of proxyToVueRequests.values()) {
+    clearTimeout(pending.timer);
   }
   vueServer.kill();
   tsserver.kill();
@@ -227,12 +238,27 @@ async function handleClientMessage(message) {
 }
 
 function handleVueMessage(message) {
+  if (message.id !== undefined && !message.method) {
+    const pending = proxyToVueRequests.get(message.id);
+    if (pending !== undefined) {
+      proxyToVueRequests.delete(message.id);
+      clearTimeout(pending.timer);
+      if (message.error) {
+        pending.reject(new Error(message.error.message || "Vue server request failed"));
+      } else {
+        pending.resolve(message.result);
+      }
+      return;
+    }
+  }
+
   if (message.method === "tsserver/request") {
     handleVueTsserverRequest(message.params);
     return;
   }
 
-  if (message.method === "textDocument/publishDiagnostics" && !vueDiagnosticsEnabled) {
+  if (message.method === "textDocument/publishDiagnostics") {
+    handleVueDiagnostics(message);
     return;
   }
 
@@ -263,11 +289,27 @@ function handleVueMessage(message) {
 }
 
 function withServerFacingCapabilities(message) {
-  if (!codeActionsEnabled) {
-    return message;
-  }
   const params = message.params && typeof message.params === "object" ? { ...message.params } : {};
   const capabilities = params.capabilities && typeof params.capabilities === "object" ? { ...params.capabilities } : {};
+  const workspace = capabilities.workspace && typeof capabilities.workspace === "object"
+    ? { ...capabilities.workspace }
+    : {};
+  capabilities.workspace = {
+    ...workspace,
+    diagnostics: {
+      ...(workspace.diagnostics && typeof workspace.diagnostics === "object" ? workspace.diagnostics : {}),
+      refreshSupport: Boolean(workspace.diagnostics?.refreshSupport)
+    }
+  };
+
+  if (!codeActionsEnabled) {
+    params.capabilities = capabilities;
+    return {
+      ...message,
+      params
+    };
+  }
+
   const textDocument = capabilities.textDocument && typeof capabilities.textDocument === "object"
     ? { ...capabilities.textDocument }
     : {};
@@ -294,6 +336,19 @@ function handleClientResponse(message) {
   vueToClientRequests.delete(message.id);
   writeVue({ ...message, id: vueId });
   return true;
+}
+
+function handleVueDiagnostics(message) {
+  if (!vueDiagnosticsEnabled && !tsDiagnosticsEnabled) {
+    return;
+  }
+  const uri = message.params?.uri;
+  if (typeof uri !== "string") {
+    return;
+  }
+  const diagnostics = vueDiagnosticsEnabled && Array.isArray(message.params?.diagnostics) ? message.params.diagnostics : [];
+  vueDiagnosticsByUri.set(uri, diagnostics);
+  publishMergedDiagnostics(uri);
 }
 
 function forwardClientToVue(message) {
@@ -497,13 +552,15 @@ function readFeatureSettings(initializationOptions) {
   if (diagnostics && typeof diagnostics === "object") {
     vueDiagnosticsEnabled = diagnostics.enabled !== false && diagnostics.vue !== false;
     tsDiagnosticsEnabled = diagnostics.enabled !== false && diagnostics.typescript !== false;
-    tsDiagnosticsOnChangeEnabled = diagnostics.onChange !== false;
-    tsDiagnosticsOnSaveEnabled = diagnostics.onSave !== false;
+    diagnosticsOnOpenEnabled = diagnostics.onOpen !== false;
+    diagnosticsOnChangeEnabled = diagnostics.onChange !== false;
+    diagnosticsOnSaveEnabled = diagnostics.onSave !== false;
   } else {
     vueDiagnosticsEnabled = true;
     tsDiagnosticsEnabled = true;
-    tsDiagnosticsOnChangeEnabled = true;
-    tsDiagnosticsOnSaveEnabled = true;
+    diagnosticsOnOpenEnabled = true;
+    diagnosticsOnChangeEnabled = true;
+    diagnosticsOnSaveEnabled = true;
   }
 
   codeActionsEnabled = initializationOptions?.vue?.codeActions?.enabled !== false;
@@ -668,6 +725,8 @@ function updateDocumentFromClient(message) {
       if (shouldSyncTsserverDocuments()) {
         updateOpenFile(file, text);
       }
+      scheduleVueDiagnostics(file, "open");
+      scheduleTsDiagnostics(file, "open");
     }
     return;
   }
@@ -685,6 +744,7 @@ function updateDocumentFromClient(message) {
       }
       state.version = document.version;
       invalidateDiagnostics(file);
+      scheduleVueDiagnostics(file, "change");
       scheduleTsDiagnostics(file, "change");
     }
     return;
@@ -694,6 +754,7 @@ function updateDocumentFromClient(message) {
     const file = uriToFile(message.params?.textDocument?.uri);
     if (file) {
       invalidateDiagnostics(file);
+      scheduleVueDiagnostics(file, "save");
       scheduleTsDiagnostics(file, "save");
     }
     return;
@@ -702,12 +763,63 @@ function updateDocumentFromClient(message) {
   if (message.method === "textDocument/didClose") {
     const file = uriToFile(message.params?.textDocument?.uri);
     if (file) {
-      publishTsDiagnostics(file, []);
+      const uri = message.params?.textDocument?.uri || fileToUri(file);
+      vueDiagnosticsByUri.delete(uri);
+      tsDiagnosticsByUri.delete(uri);
+      const timer = vueDiagnosticsTimers.get(file);
+      if (timer) {
+        clearTimeout(timer);
+        vueDiagnosticsTimers.delete(file);
+      }
+      publishMergedDiagnostics(uri);
       invalidateDiagnostics(file);
       documents.delete(file);
       closeTsserverFile(file);
     }
   }
+}
+
+function scheduleVueDiagnostics(file, trigger) {
+  const state = documents.get(file);
+  if (!state?.uri || !file.endsWith(".vue")) {
+    return;
+  }
+  if (!vueDiagnosticsEnabled) {
+    return;
+  }
+  if (!shouldRunDiagnosticsForTrigger(trigger)) {
+    return;
+  }
+  const existing = vueDiagnosticsTimers.get(file);
+  if (existing) {
+    clearTimeout(existing);
+  }
+  const delay = trigger === "save" || trigger === "open" ? DIAGNOSTICS_SAVE_DELAY_MS : DIAGNOSTICS_CHANGE_DELAY_MS;
+  const version = state.version;
+  vueDiagnosticsTimers.set(file, setTimeout(async () => {
+    vueDiagnosticsTimers.delete(file);
+    try {
+      const current = documents.get(file);
+      if (!current || current.version !== version) {
+        return;
+      }
+      const result = await requestVue("textDocument/diagnostic", {
+        textDocument: {
+          uri: current.uri
+        }
+      });
+      const latest = documents.get(file);
+      if (!latest || latest.version !== version) {
+        return;
+      }
+      const diagnostics = Array.isArray(result?.items) ? result.items : [];
+      vueDiagnosticsByUri.set(latest.uri, diagnostics);
+      publishMergedDiagnostics(latest.uri);
+    } catch (error) {
+      const uri = documents.get(file)?.uri || fileToUri(file);
+      process.stderr.write(`[Vue LSP proxy] Vue diagnostics failed for ${uri}: ${String(error?.message || error)}\n`);
+    }
+  }, delay));
 }
 
 function scheduleTsDiagnostics(file, trigger) {
@@ -718,17 +830,14 @@ function scheduleTsDiagnostics(file, trigger) {
   if (!tsDiagnosticsEnabled) {
     return;
   }
-  if (trigger === "change" && !tsDiagnosticsOnChangeEnabled) {
-    return;
-  }
-  if (trigger === "save" && !tsDiagnosticsOnSaveEnabled) {
+  if (!shouldRunDiagnosticsForTrigger(trigger)) {
     return;
   }
   const existing = diagnosticsTimers.get(file);
   if (existing) {
     clearTimeout(existing);
   }
-  const delay = trigger === "save" ? DIAGNOSTICS_SAVE_DELAY_MS : DIAGNOSTICS_CHANGE_DELAY_MS;
+  const delay = trigger === "save" || trigger === "open" ? DIAGNOSTICS_SAVE_DELAY_MS : DIAGNOSTICS_CHANGE_DELAY_MS;
   const version = state.version;
   diagnosticsTimers.set(file, setTimeout(async () => {
     diagnosticsTimers.delete(file);
@@ -747,6 +856,19 @@ function scheduleTsDiagnostics(file, trigger) {
       process.stderr.write(`[Vue LSP proxy] TS diagnostics failed: ${String(error?.message || error)}\n`);
     }
   }, delay));
+}
+
+function shouldRunDiagnosticsForTrigger(trigger) {
+  if (trigger === "open") {
+    return diagnosticsOnOpenEnabled;
+  }
+  if (trigger === "change") {
+    return diagnosticsOnChangeEnabled;
+  }
+  if (trigger === "save") {
+    return diagnosticsOnSaveEnabled;
+  }
+  return true;
 }
 
 function shouldSyncTsserverDocuments() {
@@ -805,6 +927,14 @@ function invalidateDiagnostics(file) {
 
 function publishTsDiagnostics(file, diagnostics) {
   const uri = documents.get(file)?.uri || fileToUri(file);
+  tsDiagnosticsByUri.set(uri, diagnostics);
+  publishMergedDiagnostics(uri);
+}
+
+function publishMergedDiagnostics(uri) {
+  const vueDiagnostics = vueDiagnosticsByUri.get(uri) || [];
+  const tsDiagnostics = tsDiagnosticsByUri.get(uri) || [];
+  const diagnostics = [...vueDiagnostics, ...tsDiagnostics];
   writeClient({
     jsonrpc: "2.0",
     method: "textDocument/publishDiagnostics",
@@ -913,9 +1043,31 @@ function requestTsserver(command, requestArgs) {
     const timer = setTimeout(() => {
       pendingTsserver.delete(seq);
       reject(new Error(`tsserver request timed out: ${command}`));
-    }, TSSERVER_REQUEST_TIMEOUT_MS);
+    }, SERVER_REQUEST_TIMEOUT_MS);
     pendingTsserver.set(seq, { resolve, reject, timer });
     writeTsserver(request);
+  });
+}
+
+function requestVue(method, params) {
+  if (typeof method !== "string") {
+    return Promise.reject(new Error("Missing Vue server method"));
+  }
+  const id = nextVueId++;
+  const request = {
+    jsonrpc: "2.0",
+    id,
+    method,
+    params
+  };
+
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      proxyToVueRequests.delete(id);
+      reject(new Error(`Vue server request timed out: ${method}`));
+    }, SERVER_REQUEST_TIMEOUT_MS);
+    proxyToVueRequests.set(id, { resolve, reject, timer });
+    writeVue(request);
   });
 }
 

@@ -32,6 +32,7 @@ exports.CONFIG = {
     diagnosticsEnabled: "vue.diagnostics.enabled",
     vueDiagnosticsEnabled: "vue.diagnostics.vue.enabled",
     typescriptDiagnosticsEnabled: "vue.diagnostics.typescript.enabled",
+    diagnosticsOnOpenEnabled: "vue.diagnostics.onOpen.enabled",
     diagnosticsOnChangeEnabled: "vue.diagnostics.onChange.enabled",
     diagnosticsOnSaveEnabled: "vue.diagnostics.onSave.enabled",
     codeActionsEnabled: "vue.codeActions.enabled",

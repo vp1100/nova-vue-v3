@@ -71,6 +71,7 @@ try {
   assert.strictEqual(config.initializationOptions.proxy.fallbackToVueLanguageServer, true);
   assert.strictEqual(config.initializationOptions.vue.customVueFlag, "kept");
   assert.strictEqual(config.initializationOptions.vue.completion.enabled, true);
+  assert.strictEqual(config.initializationOptions.vue.diagnostics.onOpen, true);
   assert.deepStrictEqual(warnings, []);
 
   console.log("Initialization options config test passed.");

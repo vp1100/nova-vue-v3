@@ -114,7 +114,7 @@ function findConfigItem(items, key) {
 
 const configKeys = collectConfigKeys([...(manifest.config || []), ...(manifest.configWorkspace || [])]);
 const configSections = [...(manifest.config || []), ...(manifest.configWorkspace || [])].filter((item) => item.type === "section");
-for (const section of ["Workspace", "Runtime & Paths", "Vue Language Server", "TypeScript", "Advanced"]) {
+for (const section of ["Workspace", "Runtime & Paths", "Vue Language Server", "TypeScript", "Diagnostic Triggers", "Advanced"]) {
   assert(configSections.some((item) => item.title === section), `Missing collapsible settings section: ${section}`);
 }
 assert(manifest.config?.[0]?.title === "Workspace", "Workspace settings section should be first in global settings");
@@ -130,6 +130,7 @@ for (const key of [
   "vue.diagnostics.enabled",
   "vue.diagnostics.vue.enabled",
   "vue.diagnostics.typescript.enabled",
+  "vue.diagnostics.onOpen.enabled",
   "vue.typescript.enabled",
   "vue.typescript.navigation.enabled",
   "vue.completion.enabled",
@@ -166,6 +167,7 @@ const workspaceBooleanKeys = [
   "vue.diagnostics.enabled",
   "vue.diagnostics.vue.enabled",
   "vue.diagnostics.typescript.enabled",
+  "vue.diagnostics.onOpen.enabled",
   "vue.diagnostics.onChange.enabled",
   "vue.diagnostics.onSave.enabled",
   "vue.codeActions.enabled",

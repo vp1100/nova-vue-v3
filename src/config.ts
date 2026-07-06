@@ -14,6 +14,7 @@ export interface ExtensionConfig {
   diagnosticsEnabled: boolean;
   vueDiagnosticsEnabled: boolean;
   typescriptDiagnosticsEnabled: boolean;
+  diagnosticsOnOpenEnabled: boolean;
   diagnosticsOnChangeEnabled: boolean;
   diagnosticsOnSaveEnabled: boolean;
   codeActionsEnabled: boolean;
@@ -100,6 +101,7 @@ export function readConfig(): ExtensionConfig {
     diagnosticsEnabled: readBoolean(CONFIG.diagnosticsEnabled, true),
     vueDiagnosticsEnabled: readBoolean(CONFIG.vueDiagnosticsEnabled, true),
     typescriptDiagnosticsEnabled: typescriptEnabled && readBoolean(CONFIG.typescriptDiagnosticsEnabled, true),
+    diagnosticsOnOpenEnabled: readBoolean(CONFIG.diagnosticsOnOpenEnabled, true),
     diagnosticsOnChangeEnabled: readBoolean(CONFIG.diagnosticsOnChangeEnabled, true),
     diagnosticsOnSaveEnabled: readBoolean(CONFIG.diagnosticsOnSaveEnabled, true),
     codeActionsEnabled: readBoolean(CONFIG.codeActionsEnabled, true),
@@ -126,6 +128,7 @@ function buildInitializationOptions(raw: Record<string, unknown>): Record<string
   const diagnostics = readBoolean(CONFIG.diagnosticsEnabled, true);
   const vueDiagnostics = readBoolean(CONFIG.vueDiagnosticsEnabled, true);
   const tsDiagnostics = tsEnabled && readBoolean(CONFIG.typescriptDiagnosticsEnabled, true);
+  const diagnosticsOnOpen = readBoolean(CONFIG.diagnosticsOnOpenEnabled, true);
   const diagnosticsOnChange = readBoolean(CONFIG.diagnosticsOnChangeEnabled, true);
   const diagnosticsOnSave = readBoolean(CONFIG.diagnosticsOnSaveEnabled, true);
   const codeActions = readBoolean(CONFIG.codeActionsEnabled, true);
@@ -156,6 +159,7 @@ function buildInitializationOptions(raw: Record<string, unknown>): Record<string
         enabled: diagnostics,
         vue: vueDiagnostics,
         typescript: tsDiagnostics,
+        onOpen: diagnosticsOnOpen,
         onChange: diagnosticsOnChange,
         onSave: diagnosticsOnSave
       },
@@ -216,6 +220,7 @@ function allConfigurationKeys(): string[] {
     CONFIG.diagnosticsEnabled,
     CONFIG.vueDiagnosticsEnabled,
     CONFIG.typescriptDiagnosticsEnabled,
+    CONFIG.diagnosticsOnOpenEnabled,
     CONFIG.diagnosticsOnChangeEnabled,
     CONFIG.diagnosticsOnSaveEnabled,
     CONFIG.codeActionsEnabled,
@@ -247,6 +252,7 @@ export function resolveConfigurationSection(section: string | undefined): unknow
     [CONFIG.diagnosticsEnabled]: config.diagnosticsEnabled,
     [CONFIG.vueDiagnosticsEnabled]: config.vueDiagnosticsEnabled,
     [CONFIG.typescriptDiagnosticsEnabled]: config.typescriptDiagnosticsEnabled,
+    [CONFIG.diagnosticsOnOpenEnabled]: config.diagnosticsOnOpenEnabled,
     [CONFIG.diagnosticsOnChangeEnabled]: config.diagnosticsOnChangeEnabled,
     [CONFIG.diagnosticsOnSaveEnabled]: config.diagnosticsOnSaveEnabled,
     [CONFIG.codeActionsEnabled]: config.codeActionsEnabled,
@@ -262,6 +268,7 @@ export function resolveConfigurationSection(section: string | undefined): unknow
     "vue.diagnostics.enabled": config.diagnosticsEnabled,
     "vue.diagnostics.vue": config.vueDiagnosticsEnabled,
     "vue.diagnostics.typescript": config.typescriptDiagnosticsEnabled,
+    "vue.diagnostics.onOpen": config.diagnosticsOnOpenEnabled,
     "vue.diagnostics.onChange": config.diagnosticsOnChangeEnabled,
     "vue.diagnostics.onSave": config.diagnosticsOnSaveEnabled,
     "vue.codeActions.enabled": config.codeActionsEnabled,
