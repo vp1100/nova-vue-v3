@@ -112,6 +112,8 @@ The source bundle lives in `Vue.novaextension/`. Nova resolves `"main": "main.js
 
 ## Release
 
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
 `build/` and `Vue.novaextension/Support/server/node_modules/` are intentionally ignored by git. Source control keeps only the server `package.json` and `package-lock.json`; the bundled fallback dependencies are installed only for packaging.
 
 Before publishing:
