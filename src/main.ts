@@ -1,1 +1,1 @@
-export { activate, deactivate } from "./activation";
+export { activate, deactivate } from "./activation/activate";

@@ -4,7 +4,7 @@ const assert = require("assert");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
-const configModulePath = path.join(root, "Vue.novaextension", "Scripts", "config.js");
+const configModulePath = path.join(root, "Vue.novaextension", "Scripts", "config", "index.js");
 
 const workspaceValues = new Map();
 const globalValues = new Map();

@@ -6,6 +6,12 @@
     "ignoreDeprecations": "5.0",
     "rootDir": "src",
     "outDir": "Vue.novaextension/Scripts",
+    "baseUrl": "src",
+    "paths": {
+      "@/*": [
+        "*"
+      ]
+    },
     "strict": true,
     "noImplicitAny": true,
     "skipLibCheck": true,

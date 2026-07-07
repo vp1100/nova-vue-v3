@@ -1,0 +1,80 @@
+import type { LspPosition } from "@/lsp/types";
+
+export interface TsserverBridgeStatus {
+  running: boolean;
+  requestCount: number;
+  errorCount: number;
+  path: string | null;
+}
+
+export interface WorkspaceEdit {
+  changes?: Record<string, LspTextEdit[]>;
+  documentChanges?: Array<{ textDocument?: { uri: string }; edits?: LspTextEdit[] }>;
+}
+
+export interface LspCodeAction {
+  title?: string;
+  kind?: string;
+  disabled?: unknown;
+  edit?: WorkspaceEdit;
+  command?: LspCommand;
+  data?: unknown;
+}
+
+export interface LspCommand {
+  title?: string;
+  command?: string;
+  arguments?: unknown[];
+}
+
+export interface LspTextEdit {
+  range: {
+    start: LspPosition;
+    end: LspPosition;
+  };
+  newText: string;
+}
+
+export interface TsserverDiagnosticForFix {
+  start?: { line: number; offset: number };
+  end?: { line: number; offset: number };
+  code?: number | string;
+}
+
+export interface TsserverCodeFix {
+  description: string;
+  fixName?: string;
+  fixId?: string;
+  changes: TsserverFileEdit[];
+}
+
+export interface TsserverCombinedCodeActions {
+  changes?: readonly TsserverFileEdit[];
+  commands?: readonly unknown[];
+}
+
+export interface TsserverFileEdit {
+  fileName: string;
+  textChanges: TsserverTextChange[];
+}
+
+export interface TsserverTextChange {
+  start: { line: number; offset: number };
+  end: { line: number; offset: number };
+  newText: string;
+}
+
+export function tsserverEditOptions(): Record<string, unknown> {
+  return {
+    formatOptions: {
+      semicolons: "remove"
+    },
+    preferences: {
+      quotePreference: "single",
+      importModuleSpecifierPreference: "shortest",
+      includePackageJsonAutoImports: "auto",
+      providePrefixAndSuffixTextForRename: true,
+      semicolons: "remove"
+    }
+  };
+}

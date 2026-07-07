@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.resolveConfigurationSection = exports.watchConfigChanges = exports.resetWorkspaceConfiguration = exports.resetGlobalConfiguration = exports.readConfig = exports.readCustomDataWatchPatterns = void 0;
+var custom_data_1 = require("./custom-data");
+Object.defineProperty(exports, "readCustomDataWatchPatterns", { enumerable: true, get: function () { return custom_data_1.readCustomDataWatchPatterns; } });
+var reader_1 = require("./reader");
+Object.defineProperty(exports, "readConfig", { enumerable: true, get: function () { return reader_1.readConfig; } });
+var watch_1 = require("./watch");
+Object.defineProperty(exports, "resetGlobalConfiguration", { enumerable: true, get: function () { return watch_1.resetGlobalConfiguration; } });
+Object.defineProperty(exports, "resetWorkspaceConfiguration", { enumerable: true, get: function () { return watch_1.resetWorkspaceConfiguration; } });
+Object.defineProperty(exports, "watchConfigChanges", { enumerable: true, get: function () { return watch_1.watchConfigChanges; } });
+var workspace_configuration_1 = require("./workspace-configuration");
+Object.defineProperty(exports, "resolveConfigurationSection", { enumerable: true, get: function () { return workspace_configuration_1.resolveConfigurationSection; } });

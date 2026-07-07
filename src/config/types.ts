@@ -1,0 +1,32 @@
+export interface ExtensionConfig {
+  serverEnabled: boolean;
+  nodePath: string | null;
+  serverPath: string | null;
+  tsdk: string | null;
+  debug: boolean;
+  lspLogs: boolean;
+  maxOldSpaceSize: number;
+  memoryAutoRetryEnabled: boolean;
+  restartOnConfigChange: boolean;
+  diagnosticsEnabled: boolean;
+  vueDiagnosticsEnabled: boolean;
+  typescriptDiagnosticsEnabled: boolean;
+  diagnosticsOnOpenEnabled: boolean;
+  diagnosticsOnChangeEnabled: boolean;
+  diagnosticsOnSaveEnabled: boolean;
+  codeActionsEnabled: boolean;
+  typescriptEnabled: boolean;
+  typescriptNavigationEnabled: boolean;
+  typescriptHoverEnabled: boolean;
+  typescriptDefinitionEnabled: boolean;
+  typescriptReferencesEnabled: boolean;
+  typescriptRenameEnabled: boolean;
+  typescriptCodeActionsEnabled: boolean;
+  completionEnabled: boolean;
+  completionAutoImport: boolean;
+  proxyFallbackEnabled: boolean;
+  workspaceDiscoveryEnabled: boolean;
+  workspaceWatchConfigFilesEnabled: boolean;
+  workspaceWatchPackageFilesEnabled: boolean;
+  initializationOptions: Record<string, unknown>;
+}

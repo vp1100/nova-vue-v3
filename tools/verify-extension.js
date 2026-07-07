@@ -198,7 +198,7 @@ for (const key of workspaceBooleanKeys) {
 }
 
 const runtime = fs
-  .readdirSync(path.join(bundleRoot, "Scripts"))
+  .readdirSync(path.join(bundleRoot, "Scripts"), { recursive: true })
   .filter((file) => file.endsWith(".js"))
   .map((file) => fs.readFileSync(path.join(bundleRoot, "Scripts", file), "utf8"))
   .join("\n");
@@ -209,6 +209,10 @@ assert(!runtime.includes('syntax: "typescript"'), "Vue extension must not regist
 assert(runtime.includes("Global vue-language-server and global TypeScript are intentionally not used automatically."), "Global toolchain policy is not encoded");
 assert(runtime.includes('syntax: "vue"'), "LanguageClient must bind to Nova's lowercase vue syntax");
 assert(!runtime.includes('syntax: "Vue"'), "LanguageClient must not bind to display name Vue");
+for (const directoryImport of ["commands", "config", "status", "toolchain", "language/actions"]) {
+  assert(!runtime.includes(`require("../${directoryImport}")`), `Nova runtime cannot resolve directory import: ../${directoryImport}`);
+  assert(!runtime.includes(`require("../../${directoryImport}")`), `Nova runtime cannot resolve directory import: ../../${directoryImport}`);
+}
 
 const vueSyntax = fs.readFileSync(path.join(bundleRoot, "Syntaxes", "Vue.xml"), "utf8");
 assert(vueSyntax.includes("<tree-sitter>"), "Vue syntax must enable Tree-sitter");

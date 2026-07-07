@@ -8,6 +8,7 @@
 - Redirected Nuxt generated component definitions from `.nuxt/**/components.d.ts` entries to their real `.vue` component files.
 - Added `Vue: Extract Into New Component`.
 - Changed `Vue: Add Missing Imports` to use TypeScript's combined `fixMissingImport` code fix, avoiding duplicate imports from multiple quick-fix candidates.
+- Reorganized TypeScript sources into domain modules with clean aliased builds.
 
 ## 0.1.2
 

@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "eslint \"src/**/*.ts\" \"types/**/*.d.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "tsc -p tsconfig.json && node tools/format-compiled-js.js",
+    "clean:scripts": "node tools/clean-scripts.js",
+    "build": "npm run clean:scripts && tsc -p tsconfig.json && tsc-alias -p tsconfig.json && node tools/format-compiled-js.js",
     "verify": "node tools/verify-extension.js",
     "smoke:lsp": "node tools/smoke-lsp.js",
     "smoke:bridge": "node tools/smoke-tsserver-bridge.js",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "eslint": "^10.6.0",
+    "tsc-alias": "^1.9.0",
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.63.0"
   }
