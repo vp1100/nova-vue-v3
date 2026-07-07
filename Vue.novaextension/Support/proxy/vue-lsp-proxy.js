@@ -2,6 +2,7 @@
 
 const { spawn } = require("child_process");
 const path = require("path");
+const { resolveNuxtGeneratedComponentDefinition } = require("./nuxt-definitions");
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -654,7 +655,7 @@ async function tsDefinition(file, position) {
   if (!Array.isArray(result)) {
     return [];
   }
-  return result.map((item) => tsLocationToLsp(item)).filter(Boolean);
+  return result.map((item) => resolveDefinitionLocation(item)).filter(Boolean);
 }
 
 async function tsImplementation(file, position) {
@@ -1245,6 +1246,10 @@ function tsLocationToLsp(item) {
     uri: fileToUri(item.file),
     range: tsRangeToLsp(item.start, item.end)
   };
+}
+
+function resolveDefinitionLocation(item) {
+  return resolveNuxtGeneratedComponentDefinition(item) || tsLocationToLsp(item);
 }
 
 function tsRangeToLsp(start, end) {

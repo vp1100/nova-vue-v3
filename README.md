@@ -16,6 +16,7 @@ Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) ext
 - Folds, symbols, text checking, and tag matching.
 - Vue Language Server v3 completions and Vue diagnostics.
 - TypeScript-powered hover, Jump to Definition, Jump to Implementation, Jump to References, rename, and code actions.
+- Nuxt Jump to Definition resolves generated component declarations to their source `.vue` files.
 - Commands for quick fixes, missing imports, unused imports, organize imports, server status, and debug info.
 - Lazy language-server startup so non-Vue Nova windows do not pay the process cost.
 - Workspace-first toolchain discovery with a bundled fallback for released extension builds.

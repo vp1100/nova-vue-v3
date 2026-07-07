@@ -5,6 +5,7 @@
 - Added Nova color picker support for CSS colors inside Vue `<style>` blocks.
 - Supported hex, RGB/RGBA, HSL/HSLA, percentage RGB, modern space/slash syntax, and HSL hue units.
 - Added TypeScript-backed `textDocument/implementation` support so Nova can enable native Jump to Implementations for `.vue` files.
+- Redirected Nuxt generated component definitions from `.nuxt/**/components.d.ts` entries to their real `.vue` component files.
 
 ## 0.1.2
 

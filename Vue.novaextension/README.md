@@ -15,6 +15,7 @@ Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) ext
 - Vue completions through Vue Language Server.
 - Vue and TypeScript diagnostics in `.vue` files.
 - TypeScript-powered hover, Jump to Definition, Jump to Implementation, Jump to References, rename, and code actions.
+- Nuxt Jump to Definition resolves generated component declarations to their source `.vue` files.
 - Quick commands for missing imports, unused imports, organize imports, server status, and debug info.
 
 ## Supported Vue Blocks
