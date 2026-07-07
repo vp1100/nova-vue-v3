@@ -4,3 +4,5 @@ build/
 .nova/
 .DS_Store
 npm-debug.log*
+AGENTS.md
+PREPUBLISH.md

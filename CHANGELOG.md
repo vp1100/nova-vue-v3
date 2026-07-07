@@ -1,9 +1,17 @@
 # Changelog
 
+## 0.1.2
+
+- Added top-level Nova project support for `html.customData` and `css.customData`.
+- Supported the standard custom-data array format used by the HTML and CSS language services.
+- Restarted the Vue Language Server when configured custom-data files change.
+- Added Vue server status details for Nova, macOS, TypeScript, and Vue Language Server versions.
+- Added ESLint and TypeScript linting to the release check.
+
 ## 0.1.1
 
 - Fixed `.vue` diagnostics so Vue and TypeScript results are merged instead of one source clearing the other.
-- Added Vue diagnostics pull support through Volar workspace diagnostics.
+- Added Vue diagnostics pull support through Vue Language Server workspace diagnostics.
 - Added settings for running diagnostics on file open, change, and save.
 - Added workspace overrides for diagnostics triggers.
 - Added smoke test coverage for Vue parse diagnostics.

@@ -264,7 +264,11 @@ function handleVueMessage(message) {
 
   if (message.id !== undefined && message.method) {
     const clientId = nextClientId++;
-    vueToClientRequests.set(clientId, message.id);
+    vueToClientRequests.set(clientId, {
+      vueId: message.id,
+      method: message.method,
+      params: message.params
+    });
     writeClient({ ...message, id: clientId });
     return;
   }
@@ -329,13 +333,34 @@ function withServerFacingCapabilities(message) {
 }
 
 function handleClientResponse(message) {
-  const vueId = vueToClientRequests.get(message.id);
-  if (vueId === undefined) {
+  const pending = vueToClientRequests.get(message.id);
+  if (pending === undefined) {
     return false;
   }
   vueToClientRequests.delete(message.id);
-  writeVue({ ...message, id: vueId });
+  writeVue(normalizeClientResultForVue({ ...message, id: pending.vueId }, pending));
   return true;
+}
+
+function normalizeClientResultForVue(message, pending) {
+  if (pending?.method !== "workspace/configuration" || !Array.isArray(message.result)) {
+    return message;
+  }
+  const items = Array.isArray(pending.params?.items) ? pending.params.items : [];
+  return {
+    ...message,
+    result: message.result.map((value, index) => {
+      const section = items[index]?.section;
+      return section === "html.customData" || section === "css.customData" ? normalizeCustomDataPaths(value) : value;
+    })
+  };
+}
+
+function normalizeCustomDataPaths(value) {
+  if (Array.isArray(value)) {
+    return value.filter((item) => typeof item === "string" && item.trim().length > 0);
+  }
+  return [];
 }
 
 function handleVueDiagnostics(message) {

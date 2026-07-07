@@ -86,6 +86,9 @@ for (const command of [
 ]) {
   assert(commands.has(command), `Missing command: ${command}`);
 }
+const commandPaletteCommands = new Set((manifest.commands?.["command-palette"] || []).map((command) => command.command));
+assert(!commandPaletteCommands.has("vue.resetGlobalSettings"), "Reset global settings should not be in the command palette");
+assert(!commandPaletteCommands.has("vue.resetWorkspaceSettings"), "Reset project settings should not be in the command palette");
 
 function collectConfigKeys(items, keys = new Set()) {
   for (const item of items || []) {

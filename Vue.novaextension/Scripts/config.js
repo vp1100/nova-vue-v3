@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.readConfig = readConfig;
 exports.watchConfigChanges = watchConfigChanges;
+exports.readCustomDataWatchPatterns = readCustomDataWatchPatterns;
 exports.resetGlobalConfiguration = resetGlobalConfiguration;
 exports.resetWorkspaceConfiguration = resetWorkspaceConfiguration;
 exports.resolveConfigurationSection = resolveConfigurationSection;
@@ -9,12 +10,29 @@ exports.resolveConfigurationSection = resolveConfigurationSection;
 const constants_1 = require("./constants");
 const logger_1 = require("./logger");
 
+const CUSTOM_DATA_CONFIG_KEYS = ["html.customData", "css.customData"];
+const warnedCustomDataKeys = new Set();
+
 function readString(key) {
     const workspaceValue = nova.workspace.config.get(key, "string");
     if (workspaceValue) {
         return workspaceValue;
     }
     return nova.config.get(key, "string");
+}
+
+function readRecord(key) {
+    const workspaceValue = nova.workspace.config.get(key);
+    if (isRecord(workspaceValue)) {
+        return workspaceValue;
+    }
+    const globalValue = nova.config.get(key);
+    return isRecord(globalValue) ? globalValue : null;
+}
+
+function readRawConfigValue(key) {
+    const workspaceValue = nova.workspace.config.get(key);
+    return workspaceValue ?? nova.config.get(key);
 }
 
 function readNumber(key, fallback) {
@@ -46,6 +64,10 @@ function readWorkspaceBooleanOverride(key) {
 }
 
 function readInitializationOptions() {
+    const record = readRecord(constants_1.CONFIG.initializationOptions);
+    if (record) {
+        return record;
+    }
     const raw = readString(constants_1.CONFIG.initializationOptions);
     const text = raw?.trim();
     if (!text) {
@@ -59,6 +81,32 @@ function readInitializationOptions() {
         (0, logger_1.warn)(`invalid initialization options JSON: ${String(error)}`);
         return {};
     }
+}
+
+function isRecord(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeCustomDataPaths(key, value) {
+    if (Array.isArray(value)) {
+        return value.filter((item) => typeof item === "string" && item.trim().length > 0);
+    }
+    if (value !== undefined && value !== null) {
+        warnInvalidCustomDataValue(key);
+    }
+    return [];
+}
+
+function warnInvalidCustomDataValue(key) {
+    if (warnedCustomDataKeys.has(key)) {
+        return;
+    }
+    warnedCustomDataKeys.add(key);
+    (0, logger_1.warn)(`invalid ${key}: expected an array of file paths, for example "${key}": ["./custom-data.json"] in .nova/Configuration.json`);
+}
+
+function normalizeWatchPattern(pattern) {
+    return pattern.replace(/^\.\//, "");
 }
 
 function readConfig() {
@@ -166,8 +214,17 @@ function watchConfigChanges(callback) {
         ...workspaceKeys.flatMap((key) => [
             nova.config.onDidChange(key, callback),
             nova.workspace.config.onDidChange(key, callback)
+        ]),
+        ...CUSTOM_DATA_CONFIG_KEYS.flatMap((key) => [
+            nova.config.onDidChange(key, callback),
+            nova.workspace.config.onDidChange(key, callback)
         ])
     ];
+}
+
+function readCustomDataWatchPatterns() {
+    const paths = CUSTOM_DATA_CONFIG_KEYS.flatMap((key) => normalizeCustomDataPaths(key, readRawConfigValue(key)));
+    return [...new Set(paths.map(normalizeWatchPattern).filter(Boolean))];
 }
 
 function resetGlobalConfiguration() {
@@ -258,6 +315,12 @@ function resolveConfigurationSection(section) {
     };
     if (Object.prototype.hasOwnProperty.call(values, section)) {
         return values[section];
+    }
+    if (CUSTOM_DATA_CONFIG_KEYS.includes(section)) {
+        return normalizeCustomDataPaths(section, readRawConfigValue(section));
+    }
+    if (Object.prototype.hasOwnProperty.call(config.initializationOptions, section)) {
+        return config.initializationOptions[section];
     }
     if (section === "vue") {
         const existingVue = config.initializationOptions.vue && typeof config.initializationOptions.vue === "object" && !Array.isArray(config.initializationOptions.vue)

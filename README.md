@@ -56,6 +56,28 @@ Resolution order:
 
 Global `vue-language-server` and global TypeScript are not used automatically.
 
+## Custom HTML And CSS Data
+
+Custom HTML and CSS data lets Vue Language Server offer completions and hover information for project-specific tags, attributes, CSS properties, pseudo-classes, and pseudo-elements inside `.vue` files.
+
+Use the standard custom-data formats documented by the VS Code language services:
+
+- [HTML custom data format](https://github.com/microsoft/vscode-html-languageservice/blob/main/docs/customData.md)
+- [CSS custom data format](https://github.com/microsoft/vscode-css-languageservice/blob/main/docs/customData.md)
+
+Add the paths in Nova project settings:
+
+`.nova/Configuration.json`
+
+```json
+{
+  "html.customData": ["./custom-html-data.json"],
+  "css.customData": ["./custom-css-data.json"]
+}
+```
+
+Paths are resolved relative to the project root. When a configured custom-data file changes, the extension restarts Vue Language Server so it reloads the data.
+
 ## User Commands
 
 The extension contributes these Nova commands:
@@ -71,8 +93,6 @@ The extension contributes these Nova commands:
 - `Vue: Organize Imports`
 - `Vue: Re-detect Toolchain`
 - `Vue: Open Extension Settings`
-- `Vue: Reset Global Settings`
-- `Vue: Reset Project Overrides`
 
 Nova's native `Editor > Show Code Actions` and lightbulb UI remain the primary path for LSP code actions. The explicit Vue commands are kept as practical fallbacks and shortcuts.
 

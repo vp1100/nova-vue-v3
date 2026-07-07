@@ -1,4 +1,4 @@
-import { readConfig, watchConfigChanges } from "./config";
+import { readConfig, readCustomDataWatchPatterns, watchConfigChanges } from "./config";
 import { registerCommands } from "./commands";
 import { VueLanguageService } from "./language-client";
 import { info } from "./logger";
@@ -11,6 +11,7 @@ let service: VueLanguageService | null = null;
 function watchWorkspaceFiles(callback: () => void): Disposable[] {
   const config = readConfig();
   const configPatterns = [
+    ".nova/Configuration.json",
     "tsconfig*.json",
     "jsconfig*.json",
     "vite.config.*",
@@ -24,9 +25,10 @@ function watchWorkspaceFiles(callback: () => void): Disposable[] {
   ];
   const patterns = [
     ...(config.workspaceWatchConfigFilesEnabled ? configPatterns : []),
-    ...(config.workspaceWatchPackageFilesEnabled ? packagePatterns : [])
+    ...(config.workspaceWatchPackageFilesEnabled ? packagePatterns : []),
+    ...readCustomDataWatchPatterns()
   ];
-  return patterns.map((pattern) => nova.fs.watch(pattern, callback));
+  return [...new Set(patterns)].map((pattern) => nova.fs.watch(pattern, callback));
 }
 
 function watchEditorDiagnostics(service: VueLanguageService): Disposable[] {
@@ -53,13 +55,29 @@ function watchEditorDiagnostics(service: VueLanguageService): Disposable[] {
 export function activate(): void {
   info("extension activated");
   service = new VueLanguageService();
+  let workspaceFileWatchers: Disposable[] = [];
+  const disposeWorkspaceFileWatchers = () => {
+    for (const disposable of workspaceFileWatchers) {
+      disposable.dispose();
+    }
+    workspaceFileWatchers = [];
+  };
+  const refreshWorkspaceFileWatchers = () => {
+    disposeWorkspaceFileWatchers();
+    workspaceFileWatchers = watchWorkspaceFiles(() => {
+      invalidateToolchainCache();
+      service?.scheduleRestart("workspace file changed", 2500);
+    });
+  };
+  refreshWorkspaceFileWatchers();
+
   disposables = [
     ...registerCommands(service),
-    ...watchConfigChanges(() => service?.scheduleRestart("configuration changed")),
-    ...watchWorkspaceFiles(() => {
-      invalidateToolchainCache();
-      service?.scheduleRestart("workspace toolchain changed", 2500);
+    ...watchConfigChanges(() => {
+      refreshWorkspaceFileWatchers();
+      service?.scheduleRestart("configuration changed");
     }),
+    { dispose: disposeWorkspaceFileWatchers },
     ...watchEditorDiagnostics(service),
     ...registerWorkspaceDebugLogging(() => service?.status.config ?? null)
   ];

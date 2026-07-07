@@ -31,6 +31,7 @@ declare const nova: {
     R_OK: number;
     X_OK: number;
     access(path: string, modes: number): boolean;
+    open(path: string): File;
     watch(pattern: string | null, callback: (...args: unknown[]) => void): Disposable;
   };
   commands: {
@@ -43,6 +44,11 @@ declare const nova: {
 
 interface Disposable {
   dispose(): void;
+}
+
+interface File {
+  read(): string;
+  close(): void;
 }
 
 interface Configuration {

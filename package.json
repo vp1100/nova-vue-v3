@@ -1,10 +1,11 @@
 {
   "name": "nova-vue-v3",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Nova Vue extension using @vue/language-server v3.",
   "author": "vp1100 (https://github.com/vp1100)",
   "scripts": {
+    "lint": "eslint \"src/**/*.ts\" \"types/**/*.d.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.json && node tools/format-compiled-js.js",
     "verify": "node tools/verify-extension.js",
@@ -16,10 +17,12 @@
     "test:initialization-options": "node tools/test-initialization-options.js",
     "test:disabled-settings": "node tools/test-disabled-settings.js",
     "package": "npm run build && node tools/package-extension.js",
-    "check": "npm run typecheck && npm run build && npm run verify && npm run smoke:lsp && npm run smoke:bridge && npm run smoke:vue-diagnostics && npm run test:bridge-params && npm run test:initialization-options && npm run test:disabled-settings && npm run package",
+    "check": "npm run lint && npm run typecheck && npm run build && npm run verify && npm run smoke:lsp && npm run smoke:bridge && npm run smoke:vue-diagnostics && npm run test:bridge-params && npm run test:initialization-options && npm run test:disabled-settings && npm run package",
     "check:nova": "npm run check && nova extension validate build/Vue.novaextension"
   },
   "devDependencies": {
-    "typescript": "^5.8.0"
+    "eslint": "^10.6.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.63.0"
   }
 }

@@ -4,7 +4,7 @@
   "organization": "vp",
   "vendor": "vp1100",
   "description": "Vue language support for Nova using @vue/language-server v3.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "bugs": "https://github.com/vp1100/nova-vue-v3/issues",
   "repository": "https://github.com/vp1100/nova-vue-v3",
   "homepage": "https://github.com/vp1100/nova-vue-v3",
@@ -109,14 +109,6 @@
       {
         "title": "Vue: Open Extension Settings",
         "command": "vue.openSettings"
-      },
-      {
-        "title": "Vue: Reset Global Settings",
-        "command": "vue.resetGlobalSettings"
-      },
-      {
-        "title": "Vue: Reset Project Overrides",
-        "command": "vue.resetWorkspaceSettings"
       }
     ],
     "editor": [

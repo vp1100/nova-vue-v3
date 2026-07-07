@@ -1,6 +1,9 @@
 import { CONFIG } from "./constants";
 import { warn } from "./logger";
 
+const CUSTOM_DATA_CONFIG_KEYS = ["html.customData", "css.customData"];
+const warnedCustomDataKeys = new Set<string>();
+
 export interface ExtensionConfig {
   serverEnabled: boolean;
   nodePath: string | null;
@@ -42,6 +45,20 @@ function readString(key: string): string | null {
   return nova.config.get(key, "string");
 }
 
+function readRecord(key: string): Record<string, unknown> | null {
+  const workspaceValue = nova.workspace.config.get(key);
+  if (isRecord(workspaceValue)) {
+    return workspaceValue;
+  }
+  const globalValue = nova.config.get(key);
+  return isRecord(globalValue) ? globalValue : null;
+}
+
+function readRawConfigValue(key: string): unknown {
+  const workspaceValue = nova.workspace.config.get(key);
+  return workspaceValue ?? nova.config.get(key);
+}
+
 function readNumber(key: string, fallback: number): number {
   const workspaceValue = nova.workspace.config.get(key, "number");
   const globalValue = nova.config.get(key, "number");
@@ -71,6 +88,10 @@ function readWorkspaceBooleanOverride(key: string): boolean | null {
 }
 
 function readInitializationOptions(): Record<string, unknown> {
+  const record = readRecord(CONFIG.initializationOptions);
+  if (record) {
+    return record;
+  }
   const raw = readString(CONFIG.initializationOptions);
   const text = raw?.trim();
   if (!text) {
@@ -83,6 +104,32 @@ function readInitializationOptions(): Record<string, unknown> {
     warn(`invalid initialization options JSON: ${String(error)}`);
     return {};
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeCustomDataPaths(key: string, value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+  if (value !== undefined && value !== null) {
+    warnInvalidCustomDataValue(key);
+  }
+  return [];
+}
+
+function warnInvalidCustomDataValue(key: string): void {
+  if (warnedCustomDataKeys.has(key)) {
+    return;
+  }
+  warnedCustomDataKeys.add(key);
+  warn(`invalid ${key}: expected an array of file paths, for example "${key}": ["./custom-data.json"] in .nova/Configuration.json`);
+}
+
+function normalizeWatchPattern(pattern: string): string {
+  return pattern.replace(/^\.\//, "");
 }
 
 export function readConfig(): ExtensionConfig {
@@ -190,8 +237,17 @@ export function watchConfigChanges(callback: () => void): Disposable[] {
     ...workspaceKeys.flatMap((key) => [
       nova.config.onDidChange(key, callback),
       nova.workspace.config.onDidChange(key, callback)
+    ]),
+    ...CUSTOM_DATA_CONFIG_KEYS.flatMap((key) => [
+      nova.config.onDidChange(key, callback),
+      nova.workspace.config.onDidChange(key, callback)
     ])
   ];
+}
+
+export function readCustomDataWatchPatterns(): string[] {
+  const paths = CUSTOM_DATA_CONFIG_KEYS.flatMap((key) => normalizeCustomDataPaths(key, readRawConfigValue(key)));
+  return [...new Set(paths.map(normalizeWatchPattern).filter(Boolean))];
 }
 
 export function resetGlobalConfiguration(): void {
@@ -282,6 +338,12 @@ export function resolveConfigurationSection(section: string | undefined): unknow
   };
   if (Object.prototype.hasOwnProperty.call(values, section)) {
     return values[section];
+  }
+  if (CUSTOM_DATA_CONFIG_KEYS.includes(section)) {
+    return normalizeCustomDataPaths(section, readRawConfigValue(section));
+  }
+  if (Object.prototype.hasOwnProperty.call(config.initializationOptions, section)) {
+    return config.initializationOptions[section];
   }
   if (section === "vue") {
     const existingVue =

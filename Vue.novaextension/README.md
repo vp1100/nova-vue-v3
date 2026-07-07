@@ -62,8 +62,6 @@ Available from Nova's command palette and editor menu:
 - `Vue: Organize Imports`
 - `Vue: Re-detect Toolchain`
 - `Vue: Open Extension Settings`
-- `Vue: Reset Global Settings`
-- `Vue: Reset Project Overrides`
 
 Nova's native `Editor > Show Code Actions` and lightbulb UI are the preferred way to apply LSP fixes. The Vue commands are available as direct shortcuts when you want a specific action.
 
@@ -81,6 +79,28 @@ The extension includes settings for:
 Diagnostics can run when a `.vue` file is opened, changed, or saved. Those triggers are enabled by default and can be changed globally or per workspace when a project needs quieter diagnostics.
 
 Global debug and LSP log settings intentionally stay global-only. Project settings can inherit global booleans or override them with enabled/disabled tri-state controls.
+
+## Custom HTML And CSS Data
+
+Custom HTML and CSS data lets Vue Language Server offer completions and hover information for project-specific tags, attributes, CSS properties, pseudo-classes, and pseudo-elements inside `.vue` files.
+
+Use the standard custom-data formats documented by the VS Code language services:
+
+- [HTML custom data format](https://github.com/microsoft/vscode-html-languageservice/blob/main/docs/customData.md)
+- [CSS custom data format](https://github.com/microsoft/vscode-css-languageservice/blob/main/docs/customData.md)
+
+Add the paths in Nova project settings:
+
+`.nova/Configuration.json`
+
+```json
+{
+  "html.customData": ["./custom-html-data.json"],
+  "css.customData": ["./custom-css-data.json"]
+}
+```
+
+Paths are resolved relative to the project root. When a configured custom-data file changes, the extension restarts Vue Language Server so it reloads the data.
 
 ## Troubleshooting
 
