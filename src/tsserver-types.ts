@@ -5,6 +5,21 @@ export interface WorkspaceEdit {
   documentChanges?: Array<{ textDocument?: { uri: string }; edits?: LspTextEdit[] }>;
 }
 
+export interface LspCodeAction {
+  title?: string;
+  kind?: string;
+  disabled?: unknown;
+  edit?: WorkspaceEdit;
+  command?: LspCommand;
+  data?: unknown;
+}
+
+export interface LspCommand {
+  title?: string;
+  command?: string;
+  arguments?: unknown[];
+}
+
 export interface LspTextEdit {
   range: {
     start: LspPosition;
@@ -24,6 +39,11 @@ export interface TsserverCodeFix {
   fixName?: string;
   fixId?: string;
   changes: TsserverFileEdit[];
+}
+
+export interface TsserverCombinedCodeActions {
+  changes?: readonly TsserverFileEdit[];
+  commands?: readonly unknown[];
 }
 
 export interface TsserverFileEdit {

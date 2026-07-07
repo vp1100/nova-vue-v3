@@ -91,6 +91,10 @@
         "command": "vue.quickFix"
       },
       {
+        "title": "Vue: Extract Into New Component",
+        "command": "vue.extractIntoNewComponent"
+      },
+      {
         "title": "Vue: Add Missing Imports",
         "command": "vue.addMissingImports"
       },
@@ -124,6 +128,15 @@
       {
         "title": "Quick Fix",
         "command": "vue.quickFix",
+        "filters": {
+          "syntaxes": [
+            "vue"
+          ]
+        }
+      },
+      {
+        "title": "Extract Into New Component",
+        "command": "vue.extractIntoNewComponent",
         "filters": {
           "syntaxes": [
             "vue"

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.3
+
+- Added Nova color picker support for CSS colors inside Vue `<style>` blocks.
+- Supported hex, RGB/RGBA, HSL/HSLA, percentage RGB, modern space/slash syntax, and HSL hue units.
+- Added TypeScript-backed `textDocument/implementation` support so Nova can enable native Jump to Implementations for `.vue` files.
+- Redirected Nuxt generated component definitions from `.nuxt/**/components.d.ts` entries to their real `.vue` component files.
+- Added `Vue: Extract Into New Component`.
+- Changed `Vue: Add Missing Imports` to use TypeScript's combined `fixMissingImport` code fix, avoiding duplicate imports from multiple quick-fix candidates.
+
+## 0.1.2
+
+- Added top-level Nova project support for `html.customData` and `css.customData`.
+- Supported the standard custom-data array format used by the HTML and CSS language services.
+- Restarted the Vue Language Server when configured custom-data files change.
+- Added Vue server status details for Nova, macOS, TypeScript, and Vue Language Server versions.
+- Added ESLint and TypeScript linting to the release check.
+
 ## 0.1.1
 
 - Fixed `.vue` diagnostics so Vue and TypeScript results are merged instead of one source clearing the other.

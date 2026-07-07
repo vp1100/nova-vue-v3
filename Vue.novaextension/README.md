@@ -16,7 +16,7 @@ Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) ext
 - Vue and TypeScript diagnostics in `.vue` files.
 - TypeScript-powered hover, Jump to Definition, Jump to Implementation, Jump to References, rename, and code actions.
 - Nuxt Jump to Definition resolves generated component declarations to their source `.vue` files.
-- Quick commands for missing imports, unused imports, organize imports, server status, and debug info.
+- Quick commands for missing imports, unused imports, organize imports, extracting template markup into a new component, server status, and debug info.
 
 ## Supported Vue Blocks
 
@@ -62,6 +62,7 @@ Available from Nova's command palette and editor menu:
 - `Vue: Add Missing Imports`
 - `Vue: Remove Unused Imports`
 - `Vue: Organize Imports`
+- `Vue: Extract Into New Component`
 - `Vue: Re-detect Toolchain`
 - `Vue: Open Extension Settings`
 

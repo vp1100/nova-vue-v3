@@ -9,7 +9,15 @@ import { isIgnoredWorkspacePath } from "./workspace-paths";
 import { applyTsserverFileEdits, applyWorkspaceEdit } from "./lsp-edits";
 import { stringifyCompact, summarizeCapabilities, summarizeLspResult } from "./lsp-debug";
 import { fullText, LspPosition, positionAt, rangesOverlap, symbolAt, tsPositionToLsp } from "./lsp-position";
-import { TsserverCodeFix, TsserverDiagnosticForFix, TsserverFileEdit, tsserverEditOptions, WorkspaceEdit } from "./tsserver-types";
+import {
+  TsserverCodeFix,
+  TsserverCombinedCodeActions,
+  TsserverDiagnosticForFix,
+  TsserverFileEdit,
+  LspCodeAction,
+  tsserverEditOptions,
+  WorkspaceEdit
+} from "./tsserver-types";
 import { relativeWorkspacePath } from "./workspace-paths";
 
 export class VueLanguageService {
@@ -399,6 +407,31 @@ export class VueLanguageService {
     await applyTsserverFileEdits(selectedFix.changes);
   }
 
+  async extractIntoNewComponent(candidate?: unknown): Promise<void> {
+    const editor = textEditorOrActive(candidate);
+    if (!editor || !isVueEditor(editor)) {
+      nova.workspace.showInformativeMessage("Open a .vue editor and select template markup first.");
+      return;
+    }
+    const config = readConfig();
+    if (!config.codeActionsEnabled || !config.typescriptCodeActionsEnabled) {
+      nova.workspace.showInformativeMessage("Vue code actions are disabled in settings.");
+      return;
+    }
+    this.ensureStarted("extract into new component");
+    if (!this.client) {
+      nova.workspace.showInformativeMessage("Vue language server is not running yet.");
+      return;
+    }
+
+    await this.syncEditorWithTsserver(editor);
+    const rangeArgs = tsserverRangeArgs(editor);
+    const applied = await this.tryLspExtractIntoNewComponentCodeAction(editor, rangeArgs);
+    if (!applied) {
+      nova.workspace.showInformativeMessage("No Extract Into New Component refactor available at the selection.");
+    }
+  }
+
   async addMissingImports(candidate?: unknown): Promise<void> {
     const editor = textEditorOrActive(candidate);
     if (!editor || !isVueEditor(editor)) {
@@ -421,14 +454,22 @@ export class VueLanguageService {
       return;
     }
     await this.syncEditorWithTsserver(editor);
-    const diagnostics = (await this.collectTypeScriptDiagnostics(file)) as TsserverDiagnosticForFix[];
-    const fixes = await this.collectImportFixes(file, diagnostics, isMissingImportFix);
-    if (fixes.length === 0) {
+    const combinedFix = (await this.tsserverBridge.request("getCombinedCodeFix", {
+      scope: {
+        type: "file",
+        args: { file }
+      },
+      fixId: "fixMissingImport",
+      ...tsserverEditOptions()
+    })) as TsserverCombinedCodeActions;
+    const changes = Array.isArray(combinedFix?.changes)
+      ? combinedFix.changes.filter((change) => change.textChanges.length > 0)
+      : [];
+    if (changes.length === 0) {
       nova.workspace.showInformativeMessage("No missing import fixes available.");
       return;
     }
-    await applyTsserverFileEdits(mergeTsserverFileEdits(fixes.flatMap((fix) => fix.changes)));
-    nova.workspace.showInformativeMessage(`Applied ${fixes.length} missing import fix(es).`);
+    await applyTsserverFileEdits(mergeTsserverFileEdits(changes));
   }
 
   async removeUnusedImports(candidate?: unknown): Promise<void> {
@@ -437,6 +478,61 @@ export class VueLanguageService {
 
   async organizeImports(candidate?: unknown): Promise<void> {
     await this.applyOrganizeImports(candidate, true, "Imports already organized.");
+  }
+
+  private async tryLspExtractIntoNewComponentCodeAction(editor: TextEditor, rangeArgs: TsserverRangeArgs): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
+    try {
+      const result = (await this.client.sendRequest("textDocument/codeAction", {
+        textDocument: { uri: editor.document.uri },
+        range: {
+          start: { line: rangeArgs.startLine - 1, character: rangeArgs.startOffset - 1 },
+          end: { line: rangeArgs.endLine - 1, character: rangeArgs.endOffset - 1 }
+        },
+        context: {
+          diagnostics: [],
+          only: ["refactor.move", "refactor"]
+        }
+      })) as LspCodeAction[];
+      const actions = Array.isArray(result) ? result.filter(isExtractIntoNewComponentAction) : [];
+      if (actions.length === 0) {
+        return false;
+      }
+      const selected =
+        actions.length === 1
+          ? actions[0]
+          : actions[
+              (await choicePalette(
+                actions.map((action) => action.title || action.kind || "Extract Into New Component"),
+                "Choose a Vue component extract refactor"
+              )) ?? -1
+            ];
+      if (!selected) {
+        return true;
+      }
+      const resolved = await this.resolveLspCodeAction(selected);
+      if (resolved.edit) {
+        await applyWorkspaceEdit(resolved.edit);
+        return true;
+      }
+      if (resolved.command?.command) {
+        nova.workspace.showInformativeMessage("Extract Into New Component returned a command but no edit; command execution is not wired yet.");
+        return true;
+      }
+      nova.workspace.showInformativeMessage("Extract Into New Component returned no edit.");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async resolveLspCodeAction(action: LspCodeAction): Promise<LspCodeAction> {
+    if (!this.client || action.edit || action.command) {
+      return action;
+    }
+    return (await this.client.sendRequest("codeAction/resolve", action)) as LspCodeAction;
   }
 
   private async applyOrganizeImports(candidate: unknown, skipDestructiveCodeActions: boolean, emptyMessage: string): Promise<void> {
@@ -551,46 +647,6 @@ export class VueLanguageService {
       warn(`server capabilities unavailable: ${String(capabilitiesError)}`);
       return null;
     }
-  }
-
-  private async collectImportFixes(
-    file: string,
-    diagnostics: TsserverDiagnosticForFix[],
-    predicate: (fix: TsserverCodeFix) => boolean
-  ): Promise<TsserverCodeFix[]> {
-    if (!this.tsserverBridge) {
-      return [];
-    }
-    const fixes: TsserverCodeFix[] = [];
-    const seen = new Set<string>();
-    for (const diagnostic of diagnostics) {
-      if (diagnostic.code === undefined || !diagnostic.start || !diagnostic.end) {
-        continue;
-      }
-      const diagnosticFixes = (await this.tsserverBridge.request("getCodeFixes", {
-        file,
-        startLine: diagnostic.start.line,
-        startOffset: diagnostic.start.offset,
-        endLine: diagnostic.end.line,
-        endOffset: diagnostic.end.offset,
-        errorCodes: [diagnostic.code],
-        ...tsserverEditOptions()
-      })) as TsserverCodeFix[];
-      if (!Array.isArray(diagnosticFixes)) {
-        continue;
-      }
-      for (const fix of diagnosticFixes) {
-        if (!predicate(fix) || !fix.changes.some((change) => change.textChanges.length > 0)) {
-          continue;
-        }
-        const key = JSON.stringify(fix.changes);
-        if (!seen.has(key)) {
-          seen.add(key);
-          fixes.push(fix);
-        }
-      }
-    }
-    return fixes;
   }
 
   private refreshOpenVueEditors(): void {
@@ -753,6 +809,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+interface TsserverRangeArgs {
+  startLine: number;
+  startOffset: number;
+  endLine: number;
+  endOffset: number;
+}
+
 async function inputPalette(prompt: string, value: string): Promise<string | null> {
   return new Promise((resolve) => {
     nova.workspace.showInputPalette(prompt, { placeholder: value, value }, resolve);
@@ -786,14 +849,24 @@ function matchingDiagnosticCodes(
   return codes;
 }
 
-function isMissingImportFix(fix: TsserverCodeFix): boolean {
-  const text = `${fix.fixName || ""} ${fix.fixId || ""} ${fix.description || ""}`.toLowerCase();
-  return (
-    text.includes("add import") ||
-    text.includes("add missing import") ||
-    text.includes("import from") ||
-    text.includes("fix missing import")
-  );
+function tsserverRangeArgs(editor: TextEditor): TsserverRangeArgs {
+  const range = editor.selectedRange as unknown as { start: number; end: number };
+  const start = positionAt(editor, range.start);
+  const end = positionAt(editor, range.end || range.start);
+  return {
+    startLine: start.line + 1,
+    startOffset: start.character + 1,
+    endLine: end.line + 1,
+    endOffset: end.character + 1
+  };
+}
+
+function isExtractIntoNewComponentAction(action: LspCodeAction): boolean {
+  if (action.disabled) {
+    return false;
+  }
+  const text = `${action.kind || ""} ${action.title || ""}`.toLowerCase();
+  return text.includes("refactor.move") && (text.includes("component") || text.includes("new file"));
 }
 
 function mergeTsserverFileEdits(changes: TsserverFileEdit[]): TsserverFileEdit[] {

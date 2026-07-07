@@ -6,6 +6,8 @@
 - Supported hex, RGB/RGBA, HSL/HSLA, percentage RGB, modern space/slash syntax, and HSL hue units.
 - Added TypeScript-backed `textDocument/implementation` support so Nova can enable native Jump to Implementations for `.vue` files.
 - Redirected Nuxt generated component definitions from `.nuxt/**/components.d.ts` entries to their real `.vue` component files.
+- Added `Vue: Extract Into New Component`.
+- Changed `Vue: Add Missing Imports` to use TypeScript's combined `fixMissingImport` code fix, avoiding duplicate imports from multiple quick-fix candidates.
 
 ## 0.1.2
 

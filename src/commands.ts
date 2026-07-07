@@ -18,6 +18,7 @@ export function registerCommands(service: VueLanguageService): Disposable[] {
     nova.commands.register(COMMANDS.probe, () => service.probeLspAtCursor()),
     nova.commands.register(COMMANDS.renameSymbol, (editor?: unknown) => service.renameSymbol(editor)),
     nova.commands.register(COMMANDS.quickFix, (editor?: unknown) => service.quickFix(editor)),
+    nova.commands.register(COMMANDS.extractIntoNewComponent, (editor?: unknown) => service.extractIntoNewComponent(editor)),
     nova.commands.register(COMMANDS.addMissingImports, (editor?: unknown) => service.addMissingImports(editor)),
     nova.commands.register(COMMANDS.removeUnusedImports, (editor?: unknown) => service.removeUnusedImports(editor)),
     nova.commands.register(COMMANDS.organizeImports, (editor?: unknown) => service.organizeImports(editor)),

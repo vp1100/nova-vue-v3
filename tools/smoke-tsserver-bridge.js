@@ -234,6 +234,23 @@ async function main() {
     throw new Error(`Expected proxy TypeScript code action: ${JSON.stringify(codeActions)}`);
   }
 
+  const combinedMissingImports = await request("vue/tsserverRequest", {
+    command: "getCombinedCodeFix",
+    args: {
+      scope: {
+        type: "file",
+        args: { file: missingImportFile }
+      },
+      fixId: "fixMissingImport"
+    }
+  });
+  if (
+    !Array.isArray(combinedMissingImports?.changes) ||
+    !combinedMissingImports.changes.some((change) => change.textChanges?.some((textChange) => textChange.newText.includes("title-helper")))
+  ) {
+    throw new Error(`Expected combined missing import fix: ${JSON.stringify(combinedMissingImports)}`);
+  }
+
   if (!stderrText.includes("[Vue LSP proxy] LSP logs enabled")) {
     throw new Error("Expected LSP logs enabled marker when --traceLsp true");
   }

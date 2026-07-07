@@ -6,6 +6,7 @@ export const COMMANDS = {
   probe: "vue.probeLspAtCursor",
   renameSymbol: "vue.renameSymbol",
   quickFix: "vue.quickFix",
+  extractIntoNewComponent: "vue.extractIntoNewComponent",
   addMissingImports: "vue.addMissingImports",
   removeUnusedImports: "vue.removeUnusedImports",
   organizeImports: "vue.organizeImports",

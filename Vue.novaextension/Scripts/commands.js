@@ -21,6 +21,7 @@ function registerCommands(service) {
         nova.commands.register(constants_1.COMMANDS.probe, () => service.probeLspAtCursor()),
         nova.commands.register(constants_1.COMMANDS.renameSymbol, (editor) => service.renameSymbol(editor)),
         nova.commands.register(constants_1.COMMANDS.quickFix, (editor) => service.quickFix(editor)),
+        nova.commands.register(constants_1.COMMANDS.extractIntoNewComponent, (editor) => service.extractIntoNewComponent(editor)),
         nova.commands.register(constants_1.COMMANDS.addMissingImports, (editor) => service.addMissingImports(editor)),
         nova.commands.register(constants_1.COMMANDS.removeUnusedImports, (editor) => service.removeUnusedImports(editor)),
         nova.commands.register(constants_1.COMMANDS.organizeImports, (editor) => service.organizeImports(editor)),

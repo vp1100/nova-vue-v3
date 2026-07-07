@@ -76,6 +76,7 @@ for (const command of [
   "vue.probeLspAtCursor",
   "vue.renameSymbol",
   "vue.quickFix",
+  "vue.extractIntoNewComponent",
   "vue.addMissingImports",
   "vue.removeUnusedImports",
   "vue.organizeImports",
