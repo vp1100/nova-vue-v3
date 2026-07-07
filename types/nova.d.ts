@@ -37,6 +37,9 @@ declare const nova: {
   commands: {
     register(command: string, callback: (...args: unknown[]) => unknown): Disposable;
   };
+  assistants: {
+    registerColorAssistant(selector: string | { syntax: string } | Array<string | { syntax: string }>, object: ColorAssistant): Disposable;
+  };
   clipboard: {
     writeText(text: string): Promise<void>;
   };
@@ -88,6 +91,47 @@ interface TextEditorEdit {
   replace(range: Range, text: string): void;
   insert(position: number, text: string): void;
   delete(range: Range): void;
+}
+
+interface ColorAssistant {
+  provideColors(editor: TextEditor, context: ColorInformationContext): ColorInformation[] | Promise<ColorInformation[]>;
+}
+
+interface ColorInformationContext {
+  readonly candidates: ColorCandidate[];
+}
+
+interface ColorCandidate {
+  readonly range: Range;
+  readonly text: string;
+}
+
+declare const ColorFormat: {
+  rgb: ColorFormat;
+  hsl: ColorFormat;
+  hsb: ColorFormat;
+  displayP3: ColorFormat;
+};
+
+type ColorFormat = "rgb" | "hsl" | "hsb" | "p3";
+
+declare class Color {
+  constructor(format: ColorFormat, components: number[]);
+  readonly format: ColorFormat;
+  readonly components: number[];
+  static rgb(red: number, green: number, blue: number, alpha?: number): Color;
+  static hsl(hue: number, saturation: number, luminance: number, alpha?: number): Color;
+  static hsb(hue: number, saturation: number, brightness: number, alpha?: number): Color;
+  static displayP3(red: number, green: number, blue: number, alpha?: number): Color;
+  convert(format: ColorFormat): Color;
+}
+
+declare class ColorInformation {
+  constructor(range: Range, color: Color, kind?: string);
+  color: Color;
+  kind?: string;
+  range: Range;
+  usesFloats?: boolean;
 }
 
 declare class Range {

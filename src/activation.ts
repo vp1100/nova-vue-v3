@@ -1,4 +1,5 @@
 import { readConfig, readCustomDataWatchPatterns, watchConfigChanges } from "./config";
+import { registerColorAssistant } from "./color-assistant";
 import { registerCommands } from "./commands";
 import { VueLanguageService } from "./language-client";
 import { info } from "./logger";
@@ -16,17 +17,17 @@ function watchWorkspaceFiles(callback: () => void): Disposable[] {
     "jsconfig*.json",
     "vite.config.*",
     "nuxt.config.*",
-    "vue.config.*"
+    "vue.config.*",
   ];
   const packagePatterns = [
     "package.json",
     "node_modules/typescript/package.json",
-    "node_modules/@vue/language-server/package.json"
+    "node_modules/@vue/language-server/package.json",
   ];
   const patterns = [
     ...(config.workspaceWatchConfigFilesEnabled ? configPatterns : []),
     ...(config.workspaceWatchPackageFilesEnabled ? packagePatterns : []),
-    ...readCustomDataWatchPatterns()
+    ...readCustomDataWatchPatterns(),
   ];
   return [...new Set(patterns)].map((pattern) => nova.fs.watch(pattern, callback));
 }
@@ -47,8 +48,8 @@ function watchEditorDiagnostics(service: VueLanguageService): Disposable[] {
         for (const disposable of disposables) {
           disposable.dispose();
         }
-      }
-    }
+      },
+    },
   ];
 }
 
@@ -72,6 +73,7 @@ export function activate(): void {
   refreshWorkspaceFileWatchers();
 
   disposables = [
+    ...registerColorAssistant(),
     ...registerCommands(service),
     ...watchConfigChanges(() => {
       refreshWorkspaceFileWatchers();
@@ -79,7 +81,7 @@ export function activate(): void {
     }),
     { dispose: disposeWorkspaceFileWatchers },
     ...watchEditorDiagnostics(service),
-    ...registerWorkspaceDebugLogging(() => service?.status.config ?? null)
+    ...registerWorkspaceDebugLogging(() => service?.status.config ?? null),
   ];
 }
 

@@ -10,6 +10,7 @@ Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) ext
 - Template, script, and style highlighting inside Vue files.
 - Pug template highlighting.
 - Less, Sass, SCSS, PostCSS, and Stylus style highlighting through parser fallbacks.
+- Nova color picker support for CSS colors inside Vue `<style>` blocks.
 - Document symbols, folds, tag matching, and text checking.
 - Vue completions through Vue Language Server.
 - Vue and TypeScript diagnostics in `.vue` files.

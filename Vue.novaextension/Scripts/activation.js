@@ -4,6 +4,7 @@ exports.activate = activate;
 exports.deactivate = deactivate;
 
 const config_1 = require("./config");
+const color_assistant_1 = require("./color-assistant");
 const commands_1 = require("./commands");
 const language_client_1 = require("./language-client");
 const logger_1 = require("./logger");
@@ -21,17 +22,17 @@ function watchWorkspaceFiles(callback) {
         "jsconfig*.json",
         "vite.config.*",
         "nuxt.config.*",
-        "vue.config.*"
+        "vue.config.*",
     ];
     const packagePatterns = [
         "package.json",
         "node_modules/typescript/package.json",
-        "node_modules/@vue/language-server/package.json"
+        "node_modules/@vue/language-server/package.json",
     ];
     const patterns = [
         ...(config.workspaceWatchConfigFilesEnabled ? configPatterns : []),
         ...(config.workspaceWatchPackageFilesEnabled ? packagePatterns : []),
-        ...(0, config_1.readCustomDataWatchPatterns)()
+        ...(0, config_1.readCustomDataWatchPatterns)(),
     ];
     return [...new Set(patterns)].map((pattern) => nova.fs.watch(pattern, callback));
 }
@@ -50,8 +51,8 @@ function watchEditorDiagnostics(service) {
                 for (const disposable of disposables) {
                     disposable.dispose();
                 }
-            }
-        }
+            },
+        },
     ];
 }
 
@@ -74,6 +75,7 @@ function activate() {
     };
     refreshWorkspaceFileWatchers();
     disposables = [
+        ...(0, color_assistant_1.registerColorAssistant)(),
         ...(0, commands_1.registerCommands)(service),
         ...(0, config_1.watchConfigChanges)(() => {
             refreshWorkspaceFileWatchers();
@@ -81,7 +83,7 @@ function activate() {
         }),
         { dispose: disposeWorkspaceFileWatchers },
         ...watchEditorDiagnostics(service),
-        ...(0, workspace_debug_1.registerWorkspaceDebugLogging)(() => service?.status.config ?? null)
+        ...(0, workspace_debug_1.registerWorkspaceDebugLogging)(() => service?.status.config ?? null),
     ];
 }
 
