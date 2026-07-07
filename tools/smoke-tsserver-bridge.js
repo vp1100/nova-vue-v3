@@ -128,6 +128,9 @@ async function main() {
   if (!initializeResult?.capabilities?.codeActionProvider) {
     throw new Error(`Expected codeActionProvider capability: ${JSON.stringify(initializeResult?.capabilities)}`);
   }
+  if (!initializeResult?.capabilities?.implementationProvider) {
+    throw new Error(`Expected implementationProvider capability: ${JSON.stringify(initializeResult?.capabilities)}`);
+  }
   notify("initialized", {});
   notify("textDocument/didOpen", {
     textDocument: {
@@ -170,6 +173,14 @@ async function main() {
   });
   if (!Array.isArray(definition) || !definition.some((item) => item.uri && item.uri.endsWith("valid-child.vue"))) {
     throw new Error(`Expected proxy definition for DiagnosticChild: ${JSON.stringify(definition)}`);
+  }
+
+  const implementation = await request("textDocument/implementation", {
+    textDocument: { uri: fileUri(definitionFile) },
+    position: { line: 5, character: 8 }
+  });
+  if (!Array.isArray(implementation)) {
+    throw new Error(`Expected proxy implementation array for DiagnosticChild: ${JSON.stringify(implementation)}`);
   }
 
   const references = await request("textDocument/references", {

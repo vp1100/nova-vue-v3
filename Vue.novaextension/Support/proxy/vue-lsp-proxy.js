@@ -52,6 +52,7 @@ let typescriptServiceEnabled = true;
 let typescriptFeatures = {
   hover: true,
   definition: true,
+  implementation: true,
   references: true,
   rename: true,
   codeActions: true
@@ -452,6 +453,7 @@ function normalizeVueTsserverRequest(params) {
 function isVueLanguageFeature(method) {
   return method === "textDocument/hover"
     || method === "textDocument/definition"
+    || method === "textDocument/implementation"
     || method === "textDocument/references"
     || method === "textDocument/prepareRename"
     || method === "textDocument/rename"
@@ -508,6 +510,15 @@ async function tryHandleLanguageFeature(message) {
       }
     }
 
+    if (message.method === "textDocument/implementation") {
+      if (!typescriptFeatures.implementation) {
+        return false;
+      }
+      const result = await tsImplementation(file, position);
+      writeClient({ jsonrpc: "2.0", id: message.id, result });
+      return true;
+    }
+
     if (message.method === "textDocument/references") {
       if (!typescriptFeatures.references) {
         return false;
@@ -549,6 +560,9 @@ async function tryHandleLanguageFeature(message) {
 
 function enhanceServerCapabilities(capabilities) {
   const enhanced = capabilities && typeof capabilities === "object" ? { ...capabilities } : {};
+  if (typescriptFeatures.implementation) {
+    enhanced.implementationProvider = true;
+  }
   if (!codeActionsEnabled) {
     delete enhanced.codeActionProvider;
     return enhanced;
@@ -598,6 +612,7 @@ function readFeatureSettings(initializationOptions) {
   typescriptFeatures = {
     hover: typescriptNavigationEnabled && typescript?.hover !== false,
     definition: typescriptNavigationEnabled && typescript?.definition !== false,
+    implementation: typescriptNavigationEnabled && typescript?.implementation !== false,
     references: typescriptNavigationEnabled && typescript?.references !== false,
     rename: typescriptServiceEnabled && typescript?.rename !== false,
     codeActions: typescriptServiceEnabled && typescript?.codeActions !== false
@@ -632,6 +647,18 @@ async function tsHover(file, position) {
 
 async function tsDefinition(file, position) {
   const result = unwrapTsserverResponse(await requestTsserver("definition", {
+    file,
+    line: position.line + 1,
+    offset: position.character + 1
+  }));
+  if (!Array.isArray(result)) {
+    return [];
+  }
+  return result.map((item) => tsLocationToLsp(item)).filter(Boolean);
+}
+
+async function tsImplementation(file, position) {
+  const result = unwrapTsserverResponse(await requestTsserver("implementation", {
     file,
     line: position.line + 1,
     offset: position.character + 1
@@ -900,6 +927,7 @@ function shouldSyncTsserverDocuments() {
   return typescriptServiceEnabled && (tsDiagnosticsEnabled
     || typescriptFeatures.hover
     || typescriptFeatures.definition
+    || typescriptFeatures.implementation
     || typescriptFeatures.references
     || typescriptFeatures.rename
     || (codeActionsEnabled && typescriptFeatures.codeActions));

@@ -14,7 +14,7 @@ Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) ext
 - Document symbols, folds, tag matching, and text checking.
 - Vue completions through Vue Language Server.
 - Vue and TypeScript diagnostics in `.vue` files.
-- TypeScript-powered hover, go to definition, references, rename, and code actions.
+- TypeScript-powered hover, Jump to Definition, Jump to Implementation, Jump to References, rename, and code actions.
 - Quick commands for missing imports, unused imports, organize imports, server status, and debug info.
 
 ## Supported Vue Blocks

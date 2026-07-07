@@ -15,7 +15,7 @@ Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) ext
 - Nova color picker support for CSS colors inside Vue `<style>` blocks.
 - Folds, symbols, text checking, and tag matching.
 - Vue Language Server v3 completions and Vue diagnostics.
-- TypeScript-backed hover, go to definition, references, rename, diagnostics, and code actions inside `.vue` files.
+- TypeScript-powered hover, Jump to Definition, Jump to Implementation, Jump to References, rename, and code actions.
 - Commands for quick fixes, missing imports, unused imports, organize imports, server status, and debug info.
 - Lazy language-server startup so non-Vue Nova windows do not pay the process cost.
 - Workspace-first toolchain discovery with a bundled fallback for released extension builds.

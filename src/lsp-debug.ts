@@ -46,6 +46,7 @@ export function summarizeCapabilities(capabilities: Record<string, unknown> | nu
     "completionProvider",
     "hoverProvider",
     "definitionProvider",
+    "implementationProvider",
     "referencesProvider",
     "renameProvider",
     "codeActionProvider",

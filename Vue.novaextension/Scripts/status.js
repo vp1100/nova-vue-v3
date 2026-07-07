@@ -218,6 +218,7 @@ function formatCapabilitySummary(capabilities) {
         ["completion", capabilities.completionProvider],
         ["hover", capabilities.hoverProvider],
         ["definition", capabilities.definitionProvider],
+        ["implementation", capabilities.implementationProvider],
         ["references", capabilities.referencesProvider],
         ["rename", capabilities.renameProvider],
         ["codeAction", capabilities.codeActionProvider],

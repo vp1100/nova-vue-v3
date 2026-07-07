@@ -50,6 +50,7 @@ function summarizeCapabilities(capabilities) {
         "completionProvider",
         "hoverProvider",
         "definitionProvider",
+        "implementationProvider",
         "referencesProvider",
         "renameProvider",
         "codeActionProvider",

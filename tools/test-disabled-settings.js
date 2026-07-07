@@ -22,6 +22,7 @@ const forbiddenFeatureCommands = [
   "organizeImports",
   "_vue:quickinfo",
   "definition",
+  "implementation",
   "references",
   "rename"
 ];
@@ -40,6 +41,7 @@ const scenarios = [
           navigation: false,
           hover: false,
           definition: false,
+          implementation: false,
           references: false,
           rename: false,
           codeActions: false
@@ -68,6 +70,7 @@ const scenarios = [
           navigation: false,
           hover: false,
           definition: false,
+          implementation: false,
           references: false,
           rename: false,
           codeActions: false
@@ -95,6 +98,7 @@ const scenarios = [
           navigation: false,
           hover: false,
           definition: false,
+          implementation: false,
           references: false,
           rename: false,
           codeActions: false
@@ -122,6 +126,7 @@ const scenarios = [
           navigation: false,
           hover: false,
           definition: false,
+          implementation: false,
           references: false,
           rename: false,
           codeActions: false
@@ -149,6 +154,7 @@ const scenarios = [
           navigation: false,
           hover: false,
           definition: false,
+          implementation: false,
           references: false,
           rename: false,
           codeActions: false
@@ -180,6 +186,7 @@ const scenarios = [
           navigation: true,
           hover: true,
           definition: false,
+          implementation: false,
           references: false,
           rename: false,
           codeActions: false
@@ -207,7 +214,7 @@ const scenarios = [
     expect: {
       noDiagnostics: true,
       requiredCommands: ["_vue:quickinfo"],
-      forbiddenCommands: ["getCodeFixes", "organizeImports", "definition", "references", "rename"]
+      forbiddenCommands: ["getCodeFixes", "organizeImports", "definition", "implementation", "references", "rename"]
     }
   }
 ];
@@ -376,6 +383,7 @@ async function exerciseAllLanguageFeatures(client) {
   const position = { line: 5, character: 14 };
   assertEmpty(await client.request("textDocument/hover", { textDocument, position }), "hover");
   assertEmpty(await client.request("textDocument/definition", { textDocument, position }), "definition");
+  assertEmpty(await client.request("textDocument/implementation", { textDocument, position }), "implementation");
   assertEmpty(await client.request("textDocument/references", { textDocument, position, context: { includeDeclaration: true } }), "references");
   assertEmpty(await client.request("textDocument/prepareRename", { textDocument, position }), "prepareRename");
   assertEmpty(await client.request("textDocument/rename", { textDocument, position, newName: "renamed" }), "rename");
