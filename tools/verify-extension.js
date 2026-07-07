@@ -43,6 +43,7 @@ const requiredFiles = [
   "Syntaxes/libtree-sitter-vue.dylib",
   "Queries/pug/highlights.scm",
   "Queries/stylus/highlights.scm",
+  "Support/proxy/diagnostics-scheduler.js",
   "Support/proxy/vue-lsp-proxy.js",
   "Support/server/package.json",
   "Support/server/package-lock.json",

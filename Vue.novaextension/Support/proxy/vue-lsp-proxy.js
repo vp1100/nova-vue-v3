@@ -3,6 +3,11 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const { resolveNuxtGeneratedComponentDefinition } = require("./nuxt-definitions");
+const {
+  scheduleSmartDiagnostics,
+  clearDiagnosticsSchedule,
+  clearDiagnosticsTimers
+} = require("./diagnostics-scheduler");
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -33,8 +38,6 @@ const diagnosticsCache = new Map();
 const vueDiagnosticsByUri = new Map();
 const tsDiagnosticsByUri = new Map();
 const SERVER_REQUEST_TIMEOUT_MS = 15000;
-const DIAGNOSTICS_CHANGE_DELAY_MS = 900;
-const DIAGNOSTICS_SAVE_DELAY_MS = 100;
 const DIAGNOSTICS_CACHE_TTL_MS = 5000;
 const traceLspEnabled = args.traceLsp === "true" || process.env.VUE_LSP_PROXY_TRACE_LSP === "1";
 const vueServerStderr = createRecentTextBuffer(40);
@@ -123,12 +126,8 @@ tsserver.on("exit", (code, signal) => {
 });
 
 process.on("exit", () => {
-  for (const timer of diagnosticsTimers.values()) {
-    clearTimeout(timer);
-  }
-  for (const timer of vueDiagnosticsTimers.values()) {
-    clearTimeout(timer);
-  }
+  clearDiagnosticsTimers(diagnosticsTimers);
+  clearDiagnosticsTimers(vueDiagnosticsTimers);
   for (const pending of proxyToVueRequests.values()) {
     clearTimeout(pending.timer);
   }
@@ -819,11 +818,8 @@ function updateDocumentFromClient(message) {
       const uri = message.params?.textDocument?.uri || fileToUri(file);
       vueDiagnosticsByUri.delete(uri);
       tsDiagnosticsByUri.delete(uri);
-      const timer = vueDiagnosticsTimers.get(file);
-      if (timer) {
-        clearTimeout(timer);
-        vueDiagnosticsTimers.delete(file);
-      }
+      clearDiagnosticsSchedule(vueDiagnosticsTimers, file);
+      clearDiagnosticsSchedule(diagnosticsTimers, file);
       publishMergedDiagnostics(uri);
       invalidateDiagnostics(file);
       documents.delete(file);
@@ -843,14 +839,7 @@ function scheduleVueDiagnostics(file, trigger) {
   if (!shouldRunDiagnosticsForTrigger(trigger)) {
     return;
   }
-  const existing = vueDiagnosticsTimers.get(file);
-  if (existing) {
-    clearTimeout(existing);
-  }
-  const delay = trigger === "save" || trigger === "open" ? DIAGNOSTICS_SAVE_DELAY_MS : DIAGNOSTICS_CHANGE_DELAY_MS;
-  const version = state.version;
-  vueDiagnosticsTimers.set(file, setTimeout(async () => {
-    vueDiagnosticsTimers.delete(file);
+  scheduleSmartDiagnostics(vueDiagnosticsTimers, file, trigger, async (_scheduledTrigger, version) => {
     try {
       const current = documents.get(file);
       if (!current || current.version !== version) {
@@ -872,7 +861,7 @@ function scheduleVueDiagnostics(file, trigger) {
       const uri = documents.get(file)?.uri || fileToUri(file);
       process.stderr.write(`[Vue LSP proxy] Vue diagnostics failed for ${uri}: ${String(error?.message || error)}\n`);
     }
-  }, delay));
+  }, getDocumentVersion);
 }
 
 function scheduleTsDiagnostics(file, trigger) {
@@ -886,20 +875,13 @@ function scheduleTsDiagnostics(file, trigger) {
   if (!shouldRunDiagnosticsForTrigger(trigger)) {
     return;
   }
-  const existing = diagnosticsTimers.get(file);
-  if (existing) {
-    clearTimeout(existing);
-  }
-  const delay = trigger === "save" || trigger === "open" ? DIAGNOSTICS_SAVE_DELAY_MS : DIAGNOSTICS_CHANGE_DELAY_MS;
-  const version = state.version;
-  diagnosticsTimers.set(file, setTimeout(async () => {
-    diagnosticsTimers.delete(file);
+  scheduleSmartDiagnostics(diagnosticsTimers, file, trigger, async (scheduledTrigger, version) => {
     try {
       const current = documents.get(file);
       if (!current || current.version !== version) {
         return;
       }
-      const diagnostics = await collectTsDiagnostics(file, { includeSuggestions: trigger === "save" });
+      const diagnostics = await collectTsDiagnostics(file, { includeSuggestions: scheduledTrigger === "save" });
       const latest = documents.get(file);
       if (!latest || latest.version !== version) {
         return;
@@ -908,7 +890,11 @@ function scheduleTsDiagnostics(file, trigger) {
     } catch (error) {
       process.stderr.write(`[Vue LSP proxy] TS diagnostics failed: ${String(error?.message || error)}\n`);
     }
-  }, delay));
+  }, getDocumentVersion);
+}
+
+function getDocumentVersion(file) {
+  return documents.get(file)?.version;
 }
 
 function shouldRunDiagnosticsForTrigger(trigger) {

@@ -14,12 +14,13 @@
     "smoke:bridge": "node tools/smoke-tsserver-bridge.js",
     "smoke:vue-diagnostics": "node tools/smoke-vue-diagnostics.js",
     "perf:bridge": "node tools/perf-tsserver-bridge.js",
+    "test:diagnostics-scheduler": "node tools/test-diagnostics-scheduler.js",
     "test:bridge-params": "node tools/test-tsserver-response-params.js",
     "test:initialization-options": "node tools/test-initialization-options.js",
     "test:nuxt-definitions": "node tools/test-nuxt-definitions.js",
     "test:disabled-settings": "node tools/test-disabled-settings.js",
     "package": "npm run build && node tools/package-extension.js",
-    "check": "npm run lint && npm run typecheck && npm run build && npm run verify && npm run smoke:lsp && npm run smoke:bridge && npm run smoke:vue-diagnostics && npm run test:bridge-params && npm run test:initialization-options && npm run test:nuxt-definitions && npm run test:disabled-settings && npm run package",
+    "check": "npm run lint && npm run typecheck && npm run build && npm run verify && npm run smoke:lsp && npm run smoke:bridge && npm run smoke:vue-diagnostics && npm run test:diagnostics-scheduler && npm run test:bridge-params && npm run test:initialization-options && npm run test:nuxt-definitions && npm run test:disabled-settings && npm run package",
     "check:nova": "npm run check && nova extension validate build/Vue.novaextension"
   },
   "devDependencies": {
