@@ -40,9 +40,6 @@ declare const nova: {
   assistants: {
     registerColorAssistant(selector: string | { syntax: string } | Array<string | { syntax: string }>, object: ColorAssistant): Disposable;
   };
-  clipboard: {
-    writeText(text: string): Promise<void>;
-  };
 };
 
 interface Disposable {

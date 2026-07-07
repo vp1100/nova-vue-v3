@@ -1,6 +1,6 @@
 {
   "name": "nova-vue-v3",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Nova Vue extension using @vue/language-server v3.",
   "author": "vp1100 (https://github.com/vp1100)",

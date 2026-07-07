@@ -10,12 +10,6 @@ function registerCommands(service, languageActions) {
         nova.commands.register(constants_1.COMMANDS.status, () => {
             nova.workspace.showInformativeMessage((0, index_2.formatStatus)(service.status));
         }),
-        nova.commands.register(constants_1.COMMANDS.debugInfo, async () => {
-            const text = (0, index_2.formatStatus)(service.status);
-            await nova.clipboard.writeText(text);
-            nova.workspace.showInformativeMessage("Vue debug info copied to clipboard.");
-        }),
-        nova.commands.register(constants_1.COMMANDS.lspCapabilities, () => languageActions.copyLspCapabilities()),
         nova.commands.register(constants_1.COMMANDS.probe, () => languageActions.probeLspAtCursor()),
         nova.commands.register(constants_1.COMMANDS.renameSymbol, (editor) => languageActions.renameSymbol(editor)),
         nova.commands.register(constants_1.COMMANDS.quickFix, (editor) => languageActions.quickFix(editor)),

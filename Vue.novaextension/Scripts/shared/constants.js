@@ -4,8 +4,6 @@ exports.CONFIG = exports.COMMANDS = void 0;
 exports.COMMANDS = {
     restart: "vue.restartLanguageServer",
     status: "vue.showServerStatus",
-    debugInfo: "vue.copyDebugInfo",
-    lspCapabilities: "vue.copyLspCapabilities",
     probe: "vue.probeLspAtCursor",
     renameSymbol: "vue.renameSymbol",
     quickFix: "vue.quickFix",

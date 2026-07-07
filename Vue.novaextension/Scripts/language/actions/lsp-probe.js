@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.probeLspAtCursor = probeLspAtCursor;
-exports.copyLspCapabilities = copyLspCapabilities;
 const debug_1 = require("../../lsp/debug");
 const position_1 = require("../../lsp/position");
 const logger_1 = require("../../shared/logger");
@@ -79,14 +78,4 @@ async function probeLspAtCursor(context) {
         }
     }
     nova.workspace.showInformativeMessage("Vue LSP probe finished. Check the Extension Console.");
-}
-async function copyLspCapabilities(context) {
-    context.ensureStarted("copy lsp capabilities");
-    const capabilities = await context.refreshCapabilities();
-    if (!capabilities) {
-        nova.workspace.showInformativeMessage("Vue LSP capabilities are not available yet.");
-        return;
-    }
-    await nova.clipboard.writeText(JSON.stringify(capabilities, null, 2));
-    nova.workspace.showInformativeMessage("Vue LSP capabilities copied to clipboard.");
 }

@@ -86,8 +86,6 @@ The extension contributes these Nova commands:
 
 - `Vue: Restart Language Server`
 - `Vue: Show Server Status`
-- `Vue: Copy Debug Info`
-- `Vue: Copy LSP Capabilities`
 - `Vue: Probe LSP at Cursor`
 - `Vue: Quick Fix`
 - `Vue: Add Missing Imports`

@@ -8,7 +8,6 @@ const quick_fix_1 = require("./quick-fix");
 const rename_1 = require("./rename");
 function createLanguageActions(context) {
     return {
-        copyLspCapabilities: () => (0, lsp_probe_1.copyLspCapabilities)(context),
         probeLspAtCursor: () => (0, lsp_probe_1.probeLspAtCursor)(context),
         renameSymbol: (candidate) => (0, rename_1.renameSymbol)(context, candidate),
         quickFix: (candidate) => (0, quick_fix_1.quickFix)(context, candidate),

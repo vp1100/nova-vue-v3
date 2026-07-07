@@ -11,12 +11,6 @@ export function registerCommands(service: VueLanguageService, languageActions: L
     nova.commands.register(COMMANDS.status, () => {
       nova.workspace.showInformativeMessage(formatStatus(service.status));
     }),
-    nova.commands.register(COMMANDS.debugInfo, async () => {
-      const text = formatStatus(service.status);
-      await nova.clipboard.writeText(text);
-      nova.workspace.showInformativeMessage("Vue debug info copied to clipboard.");
-    }),
-    nova.commands.register(COMMANDS.lspCapabilities, () => languageActions.copyLspCapabilities()),
     nova.commands.register(COMMANDS.probe, () => languageActions.probeLspAtCursor()),
     nova.commands.register(COMMANDS.renameSymbol, (editor?: unknown) => languageActions.renameSymbol(editor)),
     nova.commands.register(COMMANDS.quickFix, (editor?: unknown) => languageActions.quickFix(editor)),

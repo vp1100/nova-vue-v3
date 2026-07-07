@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Removed clipboard permissions by dropping the debug-info and LSP-capabilities copy commands.
+
 ## 0.1.3
 
 - Added Nova color picker support for CSS colors inside Vue `<style>` blocks.

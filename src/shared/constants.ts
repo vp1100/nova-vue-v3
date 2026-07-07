@@ -1,8 +1,6 @@
 export const COMMANDS = {
   restart: "vue.restartLanguageServer",
   status: "vue.showServerStatus",
-  debugInfo: "vue.copyDebugInfo",
-  lspCapabilities: "vue.copyLspCapabilities",
   probe: "vue.probeLspAtCursor",
   renameSymbol: "vue.renameSymbol",
   quickFix: "vue.quickFix",

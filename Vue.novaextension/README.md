@@ -55,8 +55,6 @@ Available from Nova's command palette and editor menu:
 
 - `Vue: Restart Language Server`
 - `Vue: Show Server Status`
-- `Vue: Copy Debug Info`
-- `Vue: Copy LSP Capabilities`
 - `Vue: Probe LSP at Cursor`
 - `Vue: Quick Fix`
 - `Vue: Add Missing Imports`
@@ -107,11 +105,11 @@ Paths are resolved relative to the project root. When a configured custom-data f
 
 ## Troubleshooting
 
-Use `Vue: Show Server Status` to check what the extension detected for the active workspace.
+Use `Vue: Show Server Status` to check or report what the extension detected for the active workspace, including the active Vue file, workspace root, resolved toolchain paths, and relevant settings without requiring full LSP traffic logs.
 
-Use `Vue: Copy Debug Info` when reporting an issue. It includes the active Vue file, workspace root, resolved toolchain paths, and relevant settings without requiring full LSP traffic logs.
+Enable `Debug Logs` in settings for regular extension diagnostics
 
-Enable `LSP Logs` only while debugging protocol-level behavior; those logs can be noisy.
+Enable `LSP Logs` only while debugging protocol-level behavior; LSP logs can be noisy!
 
 ## Credits
 

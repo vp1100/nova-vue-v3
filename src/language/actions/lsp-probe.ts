@@ -83,14 +83,3 @@ export async function probeLspAtCursor(context: LanguageActionContext): Promise<
 
   nova.workspace.showInformativeMessage("Vue LSP probe finished. Check the Extension Console.");
 }
-
-export async function copyLspCapabilities(context: LanguageActionContext): Promise<void> {
-  context.ensureStarted("copy lsp capabilities");
-  const capabilities = await context.refreshCapabilities();
-  if (!capabilities) {
-    nova.workspace.showInformativeMessage("Vue LSP capabilities are not available yet.");
-    return;
-  }
-  await nova.clipboard.writeText(JSON.stringify(capabilities, null, 2));
-  nova.workspace.showInformativeMessage("Vue LSP capabilities copied to clipboard.");
-}

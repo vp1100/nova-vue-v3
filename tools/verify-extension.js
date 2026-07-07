@@ -61,6 +61,7 @@ assert(typeof manifest.organization === "string" && manifest.organization.length
 assert(manifest.entitlements.process === true, "Process entitlement is required");
 assert(manifest.entitlements.filesystem === "readonly", "Filesystem entitlement must stay readonly");
 assert(manifest.entitlements.requests === false, "Runtime network requests must stay disabled");
+assert(!("clipboard" in manifest.entitlements), "Clipboard entitlement must not be requested");
 
 const commands = new Set();
 for (const section of Object.values(manifest.commands || {})) {
@@ -69,11 +70,24 @@ for (const section of Object.values(manifest.commands || {})) {
   }
 }
 
+function collectConfigCommands(items, target = commands) {
+  for (const item of items || []) {
+    if (item.command) {
+      target.add(item.command);
+    }
+    if (Array.isArray(item.children)) {
+      collectConfigCommands(item.children, target);
+    }
+  }
+  return target;
+}
+
+collectConfigCommands(manifest.config);
+collectConfigCommands(manifest.configWorkspace);
+
 for (const command of [
   "vue.restartLanguageServer",
   "vue.showServerStatus",
-  "vue.copyDebugInfo",
-  "vue.copyLspCapabilities",
   "vue.probeLspAtCursor",
   "vue.renameSymbol",
   "vue.quickFix",

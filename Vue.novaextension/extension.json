@@ -4,7 +4,7 @@
   "organization": "vp",
   "vendor": "vp1100",
   "description": "Vue language support for Nova using @vue/language-server v3.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "bugs": "https://github.com/vp1100/nova-vue-v3/issues",
   "repository": "https://github.com/vp1100/nova-vue-v3",
   "homepage": "https://github.com/vp1100/nova-vue-v3",
@@ -25,7 +25,6 @@
     "onWorkspaceContains:nuxt.config.*"
   ],
   "entitlements": {
-    "clipboard": true,
     "process": true,
     "requests": false,
     "filesystem": "readonly"
@@ -41,28 +40,12 @@
         "command": "vue.showServerStatus"
       },
       {
-        "title": "Copy Vue Debug Info",
-        "command": "vue.copyDebugInfo"
-      },
-      {
-        "title": "Copy Vue LSP Capabilities",
-        "command": "vue.copyLspCapabilities"
-      },
-      {
         "title": "Probe Vue LSP at Cursor",
         "command": "vue.probeLspAtCursor"
       },
       {
         "title": "Re-detect Vue Toolchain",
         "command": "vue.redetectToolchain"
-      },
-      {
-        "title": "Reset Vue Global Settings",
-        "command": "vue.resetGlobalSettings"
-      },
-      {
-        "title": "Reset Vue Project Overrides",
-        "command": "vue.resetWorkspaceSettings"
       }
     ],
     "command-palette": [
@@ -73,14 +56,6 @@
       {
         "title": "Vue: Show Server Status",
         "command": "vue.showServerStatus"
-      },
-      {
-        "title": "Vue: Copy Debug Info",
-        "command": "vue.copyDebugInfo"
-      },
-      {
-        "title": "Vue: Copy LSP Capabilities",
-        "command": "vue.copyLspCapabilities"
       },
       {
         "title": "Vue: Probe LSP at Cursor",
