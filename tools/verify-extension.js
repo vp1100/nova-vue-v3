@@ -224,6 +224,12 @@ assert(!runtime.includes('syntax: "typescript"'), "Vue extension must not regist
 assert(runtime.includes("Global vue-language-server and global TypeScript are intentionally not used automatically."), "Global toolchain policy is not encoded");
 assert(runtime.includes('syntax: "vue"'), "LanguageClient must bind to Nova's lowercase vue syntax");
 assert(!runtime.includes('syntax: "Vue"'), "LanguageClient must not bind to display name Vue");
+assert(runtime.includes('new LanguageClient("vp.vue.language-server"'), "LanguageClient identifier must be unique in Nova's language server list");
+assert(!runtime.includes('onRequest("workspace/configuration"'), "Core LSP configuration requests must be handled by Nova");
+assert(runtime.includes("nova.versionString"), "Nova version must use the documented Environment API");
+assert(runtime.includes("nova.systemVersion.join"), "macOS version must use the documented Environment API");
+assert(runtime.includes("provideColorPresentations"), "Color assistant must provide editable color presentations");
+assert(runtime.includes("nova.openConfig(nova.extension.identifier)"), "Global settings command must use nova.openConfig");
 for (const directoryImport of ["commands", "config", "status", "toolchain", "language/actions"]) {
   assert(!runtime.includes(`require("../${directoryImport}")`), `Nova runtime cannot resolve directory import: ../${directoryImport}`);
   assert(!runtime.includes(`require("../../${directoryImport}")`), `Nova runtime cannot resolve directory import: ../../${directoryImport}`);

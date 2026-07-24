@@ -96,15 +96,14 @@ class VueLanguageService {
             return;
         }
         this.tsserverBridge = bridge;
-        this.status.tsserverBridge = bridge.status;
         const lifecycle = ++this.lifecycle;
         this.expectedStop = false;
         const client = (0, client_factory_1.createLanguageClient)(config, toolchain, {
             maxOldSpaceSize: this.effectiveMaxOldSpaceSize(config),
             temporaryMemoryRetry: this.temporaryMaxOldSpaceSize !== null
         });
-        this.registerWorkspaceConfigurationHandler(client, config);
         bridge.attach(client);
+        this.status.tsserverBridge = bridge.status;
         this.client = client;
         this.status.state = "starting";
         this.status.running = false;
@@ -112,6 +111,14 @@ class VueLanguageService {
             if (lifecycle !== this.lifecycle) {
                 (0, logger_1.debug)(this.status.config, "ignoring stale language server stop event");
                 return;
+            }
+            if (this.client === client) {
+                this.client = null;
+            }
+            bridge.stop();
+            this.status.tsserverBridge = bridge.status;
+            if (this.tsserverBridge === bridge) {
+                this.tsserverBridge = null;
             }
             this.status.running = false;
             this.status.state = error ? "failed" : "idle";
@@ -149,6 +156,14 @@ class VueLanguageService {
         }
         catch (startError) {
             bridge.stop();
+            this.status.tsserverBridge = bridge.status;
+            if (this.client === client) {
+                this.client = null;
+            }
+            if (this.tsserverBridge === bridge) {
+                this.tsserverBridge = null;
+            }
+            this.lifecycle += 1;
             this.status.running = false;
             this.status.state = "failed";
             this.status.diagnostics = "disabled";
@@ -306,17 +321,6 @@ class VueLanguageService {
             refreshCapabilities: () => this.refreshCapabilities()
         };
     }
-    registerWorkspaceConfigurationHandler(client, config) {
-        client.onRequest("workspace/configuration", (params) => {
-            const items = isRecord(params) && Array.isArray(params.items) ? params.items : [];
-            const result = items.map((item) => {
-                const section = isRecord(item) && typeof item.section === "string" ? item.section : undefined;
-                return (0, index_1.resolveConfigurationSection)(section);
-            });
-            (0, logger_1.debug)(config, `workspace/configuration: ${result.length} item(s)`);
-            return result;
-        });
-    }
     shouldTryBundledTsdkFallback(toolchain) {
         if (this.status.fallbackRestartUsed || !toolchain.tsdk || toolchain.tsdk.source !== "workspace") {
             return false;
@@ -351,6 +355,3 @@ class VueLanguageService {
     }
 }
 exports.VueLanguageService = VueLanguageService;
-function isRecord(value) {
-    return !!value && typeof value === "object" && !Array.isArray(value);
-}

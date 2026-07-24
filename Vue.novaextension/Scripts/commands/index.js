@@ -18,7 +18,7 @@ function registerCommands(service, languageActions) {
         nova.commands.register(constants_1.COMMANDS.removeUnusedImports, (editor) => languageActions.removeUnusedImports(editor)),
         nova.commands.register(constants_1.COMMANDS.organizeImports, (editor) => languageActions.organizeImports(editor)),
         nova.commands.register(constants_1.COMMANDS.redetect, () => service.redetect()),
-        nova.commands.register(constants_1.COMMANDS.openSettings, () => nova.workspace.openConfig(nova.extension.identifier)),
+        nova.commands.register(constants_1.COMMANDS.openSettings, () => nova.openConfig(nova.extension.identifier)),
         nova.commands.register(constants_1.COMMANDS.resetGlobalSettings, () => {
             (0, index_1.resetGlobalConfiguration)();
             service.scheduleRestart("global settings reset");

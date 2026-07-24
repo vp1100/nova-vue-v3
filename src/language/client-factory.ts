@@ -72,7 +72,7 @@ export function createLanguageClient(
   );
   debug(config, `lsp logs: ${config.lspLogs ? "on" : "off"}`);
 
-  return new LanguageClient("vue", "Vue Language Server", serverOptions, clientOptions);
+  return new LanguageClient("vp.vue.language-server", "Vue Language Server", serverOptions, clientOptions);
 }
 
 function nodeModulesRoot(filePath: string): string {

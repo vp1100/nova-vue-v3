@@ -9,10 +9,6 @@ export function readCustomDataWatchPatterns(): string[] {
   return [...new Set(paths.map(normalizeWatchPattern).filter(Boolean))];
 }
 
-export function customDataConfigurationValue(section: string): string[] {
-  return normalizeCustomDataPaths(section, readRawConfigValue(section));
-}
-
 function normalizeCustomDataPaths(key: string, value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);

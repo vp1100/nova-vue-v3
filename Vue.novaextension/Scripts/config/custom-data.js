@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.readCustomDataWatchPatterns = readCustomDataWatchPatterns;
-exports.customDataConfigurationValue = customDataConfigurationValue;
 const logger_1 = require("../shared/logger");
 const keys_1 = require("./keys");
 const values_1 = require("./values");
@@ -9,9 +8,6 @@ const warnedCustomDataKeys = new Set();
 function readCustomDataWatchPatterns() {
     const paths = keys_1.CUSTOM_DATA_CONFIG_KEYS.flatMap((key) => normalizeCustomDataPaths(key, (0, values_1.readRawConfigValue)(key)));
     return [...new Set(paths.map(normalizeWatchPattern).filter(Boolean))];
-}
-function customDataConfigurationValue(section) {
-    return normalizeCustomDataPaths(section, (0, values_1.readRawConfigValue)(section));
 }
 function normalizeCustomDataPaths(key, value) {
     if (Array.isArray(value)) {

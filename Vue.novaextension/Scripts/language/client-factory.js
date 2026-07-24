@@ -50,7 +50,7 @@ function createLanguageClient(config, toolchain, options) {
     (0, logger_1.debug)(config, `lsp proxy cwd: ${cwd}`);
     (0, logger_1.debug)(config, `node memory limit: ${options.maxOldSpaceSize} MB${options.temporaryMemoryRetry ? " (temporary retry)" : ""}`);
     (0, logger_1.debug)(config, `lsp logs: ${config.lspLogs ? "on" : "off"}`);
-    return new LanguageClient("vue", "Vue Language Server", serverOptions, clientOptions);
+    return new LanguageClient("vp.vue.language-server", "Vue Language Server", serverOptions, clientOptions);
 }
 function nodeModulesRoot(filePath) {
     const marker = "/node_modules/";

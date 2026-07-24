@@ -39,11 +39,14 @@ const vueDiagnosticsByUri = new Map();
 const tsDiagnosticsByUri = new Map();
 const SERVER_REQUEST_TIMEOUT_MS = 15000;
 const DIAGNOSTICS_CACHE_TTL_MS = 5000;
+const TS_COMPLETION_DATA_KEY = "__novaVueTsCompletion";
+const NOVA_IDENTIFIER_TRIGGER_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$-";
 const traceLspEnabled = args.traceLsp === "true" || process.env.VUE_LSP_PROXY_TRACE_LSP === "1";
 const vueServerStderr = createRecentTextBuffer(40);
 const tsserverStderr = createRecentTextBuffer(40);
 let serverCapabilities = null;
 let vueCodeActionProvider = false;
+let vueSignatureHelpProvider = false;
 let vueDiagnosticsEnabled = true;
 let tsDiagnosticsEnabled = true;
 let diagnosticsOnOpenEnabled = true;
@@ -51,6 +54,7 @@ let diagnosticsOnChangeEnabled = true;
 let diagnosticsOnSaveEnabled = true;
 let codeActionsEnabled = true;
 let completionEnabled = true;
+let completionAutoImportEnabled = true;
 let fallbackToVueLanguageServerEnabled = true;
 let typescriptServiceEnabled = true;
 let typescriptFeatures = {
@@ -59,7 +63,8 @@ let typescriptFeatures = {
   implementation: true,
   references: true,
   rename: true,
-  codeActions: true
+  codeActions: true,
+  signatureHelp: true
 };
 
 const vueServer = spawnVueServer();
@@ -120,9 +125,7 @@ tsserver.on("exit", (code, signal) => {
     pending.reject(new Error(`tsserver exited (${code ?? signal ?? "unknown"})`));
   }
   pendingTsserver.clear();
-  if (isOutOfMemoryText(stderr)) {
-    process.exit(code ?? 1);
-  }
+  process.exit(code && code !== 0 ? code : 1);
 });
 
 process.on("exit", () => {
@@ -222,6 +225,13 @@ async function handleClientMessage(message) {
     return;
   }
 
+  if (message.method === "completionItem/resolve" && message.id !== undefined) {
+    const handled = await tryResolveTsCompletion(message);
+    if (handled) {
+      return;
+    }
+  }
+
   updateDocumentFromClient(message);
 
   if (message.id !== undefined && isVueLanguageFeature(message.method)) {
@@ -281,6 +291,7 @@ function handleVueMessage(message) {
       if (pending.method === "initialize") {
         serverCapabilities = enhanceServerCapabilities(message.result?.capabilities || null);
         vueCodeActionProvider = Boolean(message.result?.capabilities?.codeActionProvider);
+        vueSignatureHelpProvider = Boolean(message.result?.capabilities?.signatureHelpProvider);
         if (message.result) {
           message.result.capabilities = serverCapabilities;
         }
@@ -451,7 +462,9 @@ function normalizeVueTsserverRequest(params) {
 }
 
 function isVueLanguageFeature(method) {
-  return method === "textDocument/hover"
+  return method === "textDocument/completion"
+    || method === "textDocument/signatureHelp"
+    || method === "textDocument/hover"
     || method === "textDocument/definition"
     || method === "textDocument/implementation"
     || method === "textDocument/references"
@@ -467,6 +480,55 @@ async function tryHandleLanguageFeature(message) {
   }
 
   try {
+    if (message.method === "textDocument/completion") {
+      if (!completionEnabled) {
+        writeClient({ jsonrpc: "2.0", id: message.id, result: emptyCompletionList() });
+        return true;
+      }
+      const [typescriptResult, vueResult] = await Promise.all([
+        typescriptServiceEnabled
+          ? tsCompletion(file, message.params?.position, message.params?.context).catch(() => emptyCompletionList())
+          : Promise.resolve(emptyCompletionList()),
+        fallbackToVueLanguageServerEnabled
+          && shouldRequestVueCompletion(file, message.params?.position, message.params?.context)
+          ? requestVue("textDocument/completion", normalizeCompletionParams(message.params)).catch((error) => {
+            process.stderr.write(`[Vue LSP proxy] Vue completion failed: ${String(error?.message || error)}\n`);
+            return emptyCompletionList();
+          })
+          : Promise.resolve(emptyCompletionList())
+      ]);
+      writeClient({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: mergeCompletionResults(
+          typescriptResult,
+          normalizeVueCompletionForNova(file, message.params?.position, vueResult)
+        )
+      });
+      return true;
+    }
+
+    if (message.method === "textDocument/signatureHelp") {
+      if (!typescriptFeatures.signatureHelp) {
+        if (vueSignatureHelpProvider && fallbackToVueLanguageServerEnabled) {
+          return false;
+        }
+        writeClient({ jsonrpc: "2.0", id: message.id, result: null });
+        return true;
+      }
+      try {
+        const result = await tsSignatureHelp(file, message.params?.position, message.params?.context);
+        writeClient({ jsonrpc: "2.0", id: message.id, result });
+        return true;
+      } catch {
+        if (vueSignatureHelpProvider && fallbackToVueLanguageServerEnabled) {
+          return false;
+        }
+        writeClient({ jsonrpc: "2.0", id: message.id, result: null });
+        return true;
+      }
+    }
+
     if (message.method === "textDocument/codeAction") {
       if (!codeActionsEnabled) {
         writeClient({ jsonrpc: "2.0", id: message.id, result: [] });
@@ -560,8 +622,71 @@ async function tryHandleLanguageFeature(message) {
 
 function enhanceServerCapabilities(capabilities) {
   const enhanced = capabilities && typeof capabilities === "object" ? { ...capabilities } : {};
+  if (!completionEnabled) {
+    delete enhanced.completionProvider;
+  } else if (typescriptServiceEnabled) {
+    const existingCompletion = enhanced.completionProvider;
+    const triggerCharacters = new Set([".", "\"", "'", "`", "/", "@", "<", "#"]);
+    for (const character of NOVA_IDENTIFIER_TRIGGER_CHARACTERS) {
+      triggerCharacters.add(character);
+    }
+    if (
+      existingCompletion
+      && typeof existingCompletion === "object"
+      && Array.isArray(existingCompletion.triggerCharacters)
+    ) {
+      for (const character of existingCompletion.triggerCharacters) {
+        if (typeof character === "string") {
+          triggerCharacters.add(character);
+        }
+      }
+    }
+    enhanced.completionProvider = {
+      ...(existingCompletion && typeof existingCompletion === "object" ? existingCompletion : {}),
+      triggerCharacters: [...triggerCharacters],
+      resolveProvider: true
+    };
+  }
+  if (typescriptFeatures.signatureHelp) {
+    const existingSignatureHelp = enhanced.signatureHelpProvider;
+    const triggerCharacters = new Set(["(", ",", "<"]);
+    const retriggerCharacters = new Set([")"]);
+    if (existingSignatureHelp && typeof existingSignatureHelp === "object") {
+      for (const character of existingSignatureHelp.triggerCharacters || []) {
+        if (typeof character === "string") {
+          triggerCharacters.add(character);
+        }
+      }
+      for (const character of existingSignatureHelp.retriggerCharacters || []) {
+        if (typeof character === "string") {
+          retriggerCharacters.add(character);
+        }
+      }
+    }
+    enhanced.signatureHelpProvider = {
+      ...(existingSignatureHelp && typeof existingSignatureHelp === "object" ? existingSignatureHelp : {}),
+      triggerCharacters: [...triggerCharacters],
+      retriggerCharacters: [...retriggerCharacters]
+    };
+  }
+  if (typescriptFeatures.hover) {
+    enhanced.hoverProvider = true;
+  }
+  if (typescriptFeatures.definition) {
+    enhanced.definitionProvider = true;
+  }
   if (typescriptFeatures.implementation) {
     enhanced.implementationProvider = true;
+  }
+  if (typescriptFeatures.references) {
+    enhanced.referencesProvider = true;
+  }
+  if (typescriptFeatures.rename) {
+    const existingRename = enhanced.renameProvider;
+    enhanced.renameProvider = {
+      ...(existingRename && typeof existingRename === "object" ? existingRename : {}),
+      prepareProvider: true
+    };
   }
   if (!codeActionsEnabled) {
     delete enhanced.codeActionProvider;
@@ -604,6 +729,7 @@ function readFeatureSettings(initializationOptions) {
 
   codeActionsEnabled = initializationOptions?.vue?.codeActions?.enabled !== false;
   completionEnabled = initializationOptions?.vue?.completion?.enabled !== false;
+  completionAutoImportEnabled = initializationOptions?.vue?.completion?.autoImport !== false;
   fallbackToVueLanguageServerEnabled = initializationOptions?.proxy?.fallbackToVueLanguageServer !== false;
 
   const typescript = initializationOptions?.vue?.typescript;
@@ -615,15 +741,558 @@ function readFeatureSettings(initializationOptions) {
     implementation: typescriptNavigationEnabled && typescript?.implementation !== false,
     references: typescriptNavigationEnabled && typescript?.references !== false,
     rename: typescriptServiceEnabled && typescript?.rename !== false,
-    codeActions: typescriptServiceEnabled && typescript?.codeActions !== false
+    codeActions: typescriptServiceEnabled && typescript?.codeActions !== false,
+    signatureHelp: typescriptNavigationEnabled && typescript?.signatureHelp !== false
   };
 }
 
 function emptyLanguageFeatureResult(method) {
-  if (method === "textDocument/hover" || method === "textDocument/prepareRename" || method === "textDocument/rename") {
+  if (
+    method === "textDocument/hover"
+    || method === "textDocument/prepareRename"
+    || method === "textDocument/rename"
+    || method === "textDocument/signatureHelp"
+  ) {
     return null;
   }
+  if (method === "textDocument/completion") {
+    return emptyCompletionList();
+  }
   return [];
+}
+
+function emptyCompletionList() {
+  return {
+    isIncomplete: false,
+    items: []
+  };
+}
+
+async function tsCompletion(file, position, context) {
+  if (!position) {
+    return emptyCompletionList();
+  }
+  const requestArgs = {
+    file,
+    line: position.line + 1,
+    offset: position.character + 1,
+    includeExternalModuleExports: completionAutoImportEnabled,
+    includeInsertTextCompletions: true
+  };
+  if (
+    context?.triggerKind === 2
+    && typeof context.triggerCharacter === "string"
+    && !isNovaIdentifierTrigger(context.triggerCharacter)
+  ) {
+    requestArgs.triggerKind = context.triggerKind;
+    requestArgs.triggerCharacter = context.triggerCharacter;
+  } else if (context?.triggerKind === 2) {
+    requestArgs.triggerKind = 1;
+  } else if (typeof context?.triggerKind === "number") {
+    requestArgs.triggerKind = context.triggerKind;
+  }
+  const result = unwrapTsserverResponse(await requestTsserver("completionInfo", requestArgs));
+  if (!result || !Array.isArray(result.entries)) {
+    return emptyCompletionList();
+  }
+  return {
+    isIncomplete: result.isIncomplete === true,
+    items: result.entries
+      .filter((entry) => entry?.kind !== "warning" && typeof entry?.name === "string")
+      .map((entry) => tsCompletionItem(file, position, entry, {
+        fallbackReplacementSpan: result.optionalReplacementSpan,
+        dotAccessor: result.isMemberCompletion ? completionDotAccessor(file, position) : null,
+        defaultCommitCharacters: result.defaultCommitCharacters
+      }))
+  };
+}
+
+function tsCompletionItem(file, position, entry, context) {
+  const insertText = typeof entry.insertText === "string" ? entry.insertText : entry.name;
+  const isSnippet = entry.isSnippet === true;
+  const item = {
+    label: entry.name,
+    kind: tsCompletionItemKind(entry.kind),
+    sortText: entry.sortText,
+    filterText: entry.filterText,
+    insertText,
+    insertTextFormat: isSnippet ? 2 : 1,
+    preselect: entry.isRecommended === true,
+    commitCharacters: Array.isArray(entry.commitCharacters)
+      ? entry.commitCharacters
+      : context?.defaultCommitCharacters,
+    detail: completionEntryDetail(entry),
+    data: {
+      [TS_COMPLETION_DATA_KEY]: {
+        file,
+        position,
+        name: entry.name,
+        source: entry.source,
+        entryData: entry.data
+      }
+    }
+  };
+  const entryReplacementRange = tsRangeToLsp(entry.replacementSpan?.start, entry.replacementSpan?.end);
+  const fallbackReplacementRange = tsRangeToLsp(
+    context?.fallbackReplacementSpan?.start,
+    context?.fallbackReplacementSpan?.end
+  );
+  if (!entryReplacementRange && context?.dotAccessor && !isSnippet) {
+    const accessorInsertText = context.dotAccessor.text + insertText;
+    item.filterText = accessorInsertText;
+    item.insertText = accessorInsertText;
+    item.textEdit = {
+      range: unionLspRanges(context.dotAccessor.range, fallbackReplacementRange),
+      newText: accessorInsertText
+    };
+  } else {
+    const replacementRange = entryReplacementRange || fallbackReplacementRange;
+    if (replacementRange) {
+      item.textEdit = {
+        range: replacementRange,
+        newText: insertText
+      };
+    }
+  }
+  if (typeof entry.kindModifiers === "string" && entry.kindModifiers.split(",").includes("deprecated")) {
+    item.tags = [1];
+  }
+  return item;
+}
+
+function completionDotAccessor(file, position) {
+  const text = documents.get(file)?.text;
+  if (typeof text !== "string" || !position) {
+    return null;
+  }
+  const line = text.split(/\r?\n/)[position.line] || "";
+  const match = line.slice(0, position.character).match(/\??\.\s*$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    text: match[0],
+    range: {
+      start: {
+        line: position.line,
+        character: position.character - match[0].length
+      },
+      end: position
+    }
+  };
+}
+
+function unionLspRanges(first, second) {
+  if (!second) {
+    return first;
+  }
+  return {
+    start: compareLspPositions(first.start, second.start) <= 0 ? first.start : second.start,
+    end: compareLspPositions(first.end, second.end) >= 0 ? first.end : second.end
+  };
+}
+
+function compareLspPositions(first, second) {
+  if (first.line !== second.line) {
+    return first.line - second.line;
+  }
+  return first.character - second.character;
+}
+
+function completionEntryDetail(entry) {
+  const sourceDisplay = displayPartsText(entry.sourceDisplay);
+  const labelDescription = entry.labelDetails?.description;
+  if (sourceDisplay) {
+    return sourceDisplay;
+  }
+  if (typeof labelDescription === "string" && labelDescription) {
+    return labelDescription;
+  }
+  if (typeof entry.source === "string" && entry.source) {
+    return entry.source;
+  }
+  return undefined;
+}
+
+function tsCompletionItemKind(kind) {
+  const kinds = {
+    method: 2,
+    function: 3,
+    constructor: 4,
+    property: 10,
+    getter: 10,
+    setter: 10,
+    var: 6,
+    let: 6,
+    const: 21,
+    class: 7,
+    interface: 8,
+    module: 9,
+    alias: 18,
+    type: 25,
+    enum: 13,
+    "enum member": 20,
+    keyword: 14,
+    script: 17,
+    directory: 19,
+    "external module name": 9,
+    string: 12,
+    "primitive type": 25,
+    label: 6
+  };
+  return kinds[kind] || 1;
+}
+
+function mergeCompletionResults(typescriptResult, vueResult) {
+  const typescriptList = normalizeCompletionList(typescriptResult);
+  const vueList = normalizeCompletionList(vueResult);
+  const items = [];
+  const seen = new Set();
+  for (const item of [...typescriptList.items, ...vueList.items]) {
+    if (!item || typeof item.label !== "string") {
+      continue;
+    }
+    const insertText = item.textEdit?.newText || item.insertText || item.label;
+    const key = `${item.label}\u0000${insertText}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    items.push(item);
+  }
+  return {
+    isIncomplete: typescriptList.isIncomplete || vueList.isIncomplete,
+    items
+  };
+}
+
+function normalizeCompletionList(result) {
+  if (Array.isArray(result)) {
+    return {
+      isIncomplete: false,
+      items: result
+    };
+  }
+  const itemDefaults = result?.itemDefaults;
+  const applyKind = result?.applyKind;
+  return {
+    isIncomplete: result?.isIncomplete === true,
+    items: Array.isArray(result?.items)
+      ? result.items.map((item) => applyCompletionItemDefaults(item, itemDefaults, applyKind))
+      : []
+  };
+}
+
+function applyCompletionItemDefaults(item, defaults, applyKind) {
+  if (!item || typeof item !== "object" || !defaults || typeof defaults !== "object") {
+    return item;
+  }
+  const normalized = { ...item };
+  if (normalized.commitCharacters == null && Array.isArray(defaults.commitCharacters)) {
+    normalized.commitCharacters = defaults.commitCharacters;
+  } else if (
+    applyKind?.commitCharacters === 2
+    && Array.isArray(defaults.commitCharacters)
+    && Array.isArray(normalized.commitCharacters)
+  ) {
+    normalized.commitCharacters = [...new Set([...defaults.commitCharacters, ...normalized.commitCharacters])];
+  }
+  if (normalized.insertTextFormat == null && typeof defaults.insertTextFormat === "number") {
+    normalized.insertTextFormat = defaults.insertTextFormat;
+  }
+  if (normalized.insertTextMode == null && typeof defaults.insertTextMode === "number") {
+    normalized.insertTextMode = defaults.insertTextMode;
+  }
+  if (normalized.data == null) {
+    normalized.data = defaults.data;
+  } else if (
+    applyKind?.data === 2
+    && isPlainObject(defaults.data)
+    && isPlainObject(normalized.data)
+  ) {
+    normalized.data = { ...defaults.data, ...normalized.data };
+  }
+  if (normalized.textEdit == null && defaults.editRange) {
+    const newText = typeof normalized.textEditText === "string"
+      ? normalized.textEditText
+      : normalized.label;
+    if (typeof newText === "string") {
+      if (defaults.editRange.start && defaults.editRange.end) {
+        normalized.textEdit = {
+          range: defaults.editRange,
+          newText
+        };
+      } else if (defaults.editRange.insert && defaults.editRange.replace) {
+        normalized.textEdit = {
+          insert: defaults.editRange.insert,
+          replace: defaults.editRange.replace,
+          newText
+        };
+      }
+      if (normalized.textEdit) {
+        delete normalized.textEditText;
+      }
+    }
+  }
+  return normalized;
+}
+
+function isPlainObject(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeCompletionParams(params) {
+  const context = params?.context;
+  if (
+    context?.triggerKind !== 2
+    || typeof context.triggerCharacter !== "string"
+    || !isNovaIdentifierTrigger(context.triggerCharacter)
+  ) {
+    return params;
+  }
+  const normalizedContext = {
+    ...context,
+    triggerKind: 1
+  };
+  delete normalizedContext.triggerCharacter;
+  return {
+    ...params,
+    context: normalizedContext
+  };
+}
+
+function isNovaIdentifierTrigger(character) {
+  return character.length === 1 && NOVA_IDENTIFIER_TRIGGER_CHARACTERS.includes(character);
+}
+
+function normalizeVueCompletionForNova(file, position, result) {
+  const list = normalizeCompletionList(result);
+  if (!isEmptyOpeningTagCompletion(file, position)) {
+    return list;
+  }
+  return {
+    ...list,
+    items: list.items.map((item) => completionWithoutStaticTagEdit(item, position))
+  };
+}
+
+function isEmptyOpeningTagCompletion(file, position) {
+  const text = documents.get(file)?.text;
+  if (typeof text !== "string" || !position) {
+    return false;
+  }
+  const line = text.split(/\r?\n/)[position.line] || "";
+  return line.slice(0, position.character).endsWith("<");
+}
+
+function completionWithoutStaticTagEdit(item, position) {
+  if (!item || typeof item.label !== "string") {
+    return item;
+  }
+  const textEdit = item.textEdit;
+  if (!textEdit || !completionEditIsEmptyAt(textEdit, position)) {
+    return item;
+  }
+  const insertion = item.textEdit?.newText || item.insertText || item.label;
+  if (typeof insertion !== "string") {
+    return item;
+  }
+  const filterText = typeof item.filterText === "string" ? item.filterText : insertion;
+  const insertText = typeof item.insertText === "string" ? item.insertText : insertion;
+  const { textEdit: _textEdit, textEditText: _textEditText, ...rest } = item;
+  return {
+    ...rest,
+    filterText: filterText.startsWith("<") ? filterText : "<" + filterText,
+    insertText: insertText.startsWith("<") ? insertText : "<" + insertText
+  };
+}
+
+function completionEditIsEmptyAt(textEdit, position) {
+  if (textEdit?.range) {
+    return lspRangeIsEmptyAt(textEdit.range, position);
+  }
+  if (textEdit?.insert && textEdit?.replace) {
+    return lspRangeIsEmptyAt(textEdit.insert, position)
+      && lspRangeIsEmptyAt(textEdit.replace, position);
+  }
+  return false;
+}
+
+function lspRangeIsEmptyAt(range, position) {
+  return compareLspPositions(range.start, position) === 0
+    && compareLspPositions(range.end, position) === 0;
+}
+
+function shouldRequestVueCompletion(file, position, context) {
+  const text = documents.get(file)?.text;
+  if (typeof text !== "string" || !position) {
+    return true;
+  }
+  const block = sfcBlockAtOffset(text, offsetAt(text, position));
+  return block !== "script" || context?.triggerCharacter === "*";
+}
+
+function sfcBlockAtOffset(text, offset) {
+  const openingTag = /<(template|script|style)\b[^>]*>/gi;
+  let match;
+  while ((match = openingTag.exec(text)) !== null) {
+    const contentStart = openingTag.lastIndex;
+    const closingTag = new RegExp(`</${match[1]}\\s*>`, "gi");
+    closingTag.lastIndex = contentStart;
+    const closingMatch = closingTag.exec(text);
+    const contentEnd = closingMatch ? closingMatch.index : text.length;
+    if (offset >= contentStart && offset <= contentEnd) {
+      return match[1].toLowerCase();
+    }
+  }
+  return null;
+}
+
+async function tryResolveTsCompletion(message) {
+  const item = message.params;
+  const data = item?.data?.[TS_COMPLETION_DATA_KEY];
+  if (!data || typeof data.file !== "string" || !data.position || typeof data.name !== "string") {
+    return false;
+  }
+  try {
+    const detailsResult = unwrapTsserverResponse(await requestTsserver("completionEntryDetails", {
+      file: data.file,
+      line: data.position.line + 1,
+      offset: data.position.character + 1,
+      entryNames: [{
+        name: data.name,
+        source: data.source,
+        data: data.entryData
+      }],
+      ...tsserverEditOptions()
+    }));
+    const details = Array.isArray(detailsResult) ? detailsResult[0] : null;
+    if (!details) {
+      writeClient({ jsonrpc: "2.0", id: message.id, result: item });
+      return true;
+    }
+    const resolved = {
+      ...item,
+      detail: displayPartsText(details.displayParts) || item.detail,
+      documentation: completionDocumentation(details) || item.documentation
+    };
+    const additionalTextEdits = completionAdditionalTextEdits(details.codeActions, data.file);
+    if (additionalTextEdits.length > 0) {
+      resolved.additionalTextEdits = additionalTextEdits;
+    }
+    writeClient({ jsonrpc: "2.0", id: message.id, result: resolved });
+  } catch (error) {
+    process.stderr.write(`[Vue LSP proxy] completion resolve failed: ${String(error?.message || error)}\n`);
+    writeClient({ jsonrpc: "2.0", id: message.id, result: item });
+  }
+  return true;
+}
+
+function completionDocumentation(details) {
+  const parts = [];
+  const documentation = displayPartsText(details?.documentation);
+  if (documentation) {
+    parts.push(documentation);
+  }
+  for (const tag of details?.tags || []) {
+    const text = displayPartsText(tag?.text);
+    parts.push(text ? `*@${tag?.name || "tag"}* ${text}` : `*@${tag?.name || "tag"}*`);
+  }
+  if (parts.length === 0) {
+    return undefined;
+  }
+  return {
+    kind: "markdown",
+    value: parts.join("\n\n")
+  };
+}
+
+function completionAdditionalTextEdits(codeActions, file) {
+  const edits = [];
+  for (const action of codeActions || []) {
+    for (const change of action?.changes || []) {
+      if (change?.fileName !== file || !Array.isArray(change.textChanges)) {
+        continue;
+      }
+      for (const textChange of change.textChanges) {
+        const range = tsRangeToLsp(textChange?.start, textChange?.end);
+        if (range) {
+          edits.push({
+            range,
+            newText: textChange.newText || ""
+          });
+        }
+      }
+    }
+  }
+  return edits;
+}
+
+function displayPartsText(parts) {
+  if (typeof parts === "string") {
+    return parts;
+  }
+  if (!Array.isArray(parts)) {
+    return "";
+  }
+  return parts.map((part) => typeof part === "string" ? part : part?.text || "").join("");
+}
+
+async function tsSignatureHelp(file, position, context) {
+  if (!position) {
+    return null;
+  }
+  const result = unwrapTsserverResponse(await requestTsserver("signatureHelp", {
+    file,
+    line: position.line + 1,
+    offset: position.character + 1,
+    triggerReason: tsSignatureHelpTriggerReason(context)
+  }));
+  if (!result || !Array.isArray(result.items) || result.items.length === 0) {
+    return null;
+  }
+  return {
+    signatures: result.items.map((item) => tsSignatureInformation(item)),
+    activeSignature: Math.max(0, result.selectedItemIndex || 0),
+    activeParameter: Math.max(0, result.argumentIndex || 0)
+  };
+}
+
+function tsSignatureHelpTriggerReason(context) {
+  if (context?.triggerKind === 2 && typeof context.triggerCharacter === "string") {
+    return {
+      kind: "characterTyped",
+      triggerCharacter: context.triggerCharacter
+    };
+  }
+  if (context?.triggerKind === 3) {
+    return {
+      kind: "retrigger",
+      triggerCharacter: typeof context.triggerCharacter === "string" ? context.triggerCharacter : undefined
+    };
+  }
+  return {
+    kind: "invoked"
+  };
+}
+
+function tsSignatureInformation(item) {
+  const prefix = displayPartsText(item?.prefixDisplayParts);
+  const suffix = displayPartsText(item?.suffixDisplayParts);
+  const separator = displayPartsText(item?.separatorDisplayParts);
+  const parameters = (item?.parameters || []).map((parameter) => ({
+    label: displayPartsText(parameter?.displayParts) || parameter?.name || "",
+    documentation: completionDocumentation(parameter)
+  }));
+  const signature = {
+    label: `${prefix}${parameters.map((parameter) => parameter.label).join(separator)}${suffix}`,
+    parameters
+  };
+  const documentation = completionDocumentation(item);
+  if (documentation) {
+    signature.documentation = documentation;
+  }
+  return signature;
 }
 
 async function tsHover(file, position) {
@@ -912,11 +1581,13 @@ function shouldRunDiagnosticsForTrigger(trigger) {
 
 function shouldSyncTsserverDocuments() {
   return typescriptServiceEnabled && (tsDiagnosticsEnabled
+    || completionEnabled
     || typescriptFeatures.hover
     || typescriptFeatures.definition
     || typescriptFeatures.implementation
     || typescriptFeatures.references
     || typescriptFeatures.rename
+    || typescriptFeatures.signatureHelp
     || (codeActionsEnabled && typescriptFeatures.codeActions));
 }
 
