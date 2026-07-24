@@ -19,7 +19,7 @@ export function registerCommands(service: VueLanguageService, languageActions: L
     nova.commands.register(COMMANDS.removeUnusedImports, (editor?: unknown) => languageActions.removeUnusedImports(editor)),
     nova.commands.register(COMMANDS.organizeImports, (editor?: unknown) => languageActions.organizeImports(editor)),
     nova.commands.register(COMMANDS.redetect, () => service.redetect()),
-    nova.commands.register(COMMANDS.openSettings, () => nova.workspace.openConfig(nova.extension.identifier)),
+    nova.commands.register(COMMANDS.openSettings, () => nova.openConfig(nova.extension.identifier)),
     nova.commands.register(COMMANDS.resetGlobalSettings, () => {
       resetGlobalConfiguration();
       service.scheduleRestart("global settings reset");

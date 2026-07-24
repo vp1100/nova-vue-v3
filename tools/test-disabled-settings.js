@@ -24,7 +24,10 @@ const forbiddenFeatureCommands = [
   "definition",
   "implementation",
   "references",
-  "rename"
+  "rename",
+  "completionInfo",
+  "completionEntryDetails",
+  "signatureHelp"
 ];
 
 const scenarios = [
@@ -78,10 +81,19 @@ const scenarios = [
       }
     },
     async exercise(client) {
+      const completion = await client.request("textDocument/completion", {
+        textDocument: { uri: fileUri(vueFile) },
+        position: { line: 5, character: 18 },
+        context: { triggerKind: 1 }
+      });
+      if (completionItems(completion).length === 0) {
+        throw new Error("Expected TypeScript completions when completion is enabled");
+      }
       await client.wait(1300);
     },
     expect: {
       noDiagnostics: true,
+      requiredCommands: ["completionInfo"],
       forbiddenCommands: ["syntacticDiagnosticsSync", "semanticDiagnosticsSync", "suggestionDiagnosticsSync", "getCodeFixes"]
     }
   },
@@ -106,6 +118,11 @@ const scenarios = [
       }
     },
     async exercise(client) {
+      assertEmpty(await client.request("textDocument/completion", {
+        textDocument: { uri: fileUri(vueFile) },
+        position: { line: 5, character: 18 },
+        context: { triggerKind: 1 }
+      }), "completion");
       await client.wait(1300);
     },
     expect: {
@@ -231,6 +248,15 @@ async function main() {
       const initializeResult = await initialize(client, scenario.options);
       if (scenario.options.vue.codeActions.enabled === false && initializeResult?.capabilities?.codeActionProvider) {
         throw new Error(`[${scenario.name}] Expected codeActionProvider to be disabled`);
+      }
+      if (scenario.options.vue.completion.enabled === false && initializeResult?.capabilities?.completionProvider) {
+        throw new Error(`[${scenario.name}] Expected completionProvider to be disabled`);
+      }
+      if (
+        scenario.options.vue.typescript.navigation === false
+        && initializeResult?.capabilities?.signatureHelpProvider
+      ) {
+        throw new Error(`[${scenario.name}] Expected signatureHelpProvider to be disabled`);
       }
       openAndEditDocument(client);
       await scenario.exercise(client);
@@ -395,6 +421,16 @@ async function exerciseAllLanguageFeatures(client) {
     },
     context: { diagnostics: [] }
   }), "codeAction");
+  assertEmpty(await client.request("textDocument/completion", {
+    textDocument,
+    position,
+    context: { triggerKind: 1 }
+  }), "completion");
+  assertEmpty(await client.request("textDocument/signatureHelp", {
+    textDocument,
+    position,
+    context: { triggerKind: 1 }
+  }), "signatureHelp");
   await client.wait(1300);
 }
 
@@ -422,7 +458,17 @@ function assertEmpty(value, label) {
   if (Array.isArray(value) && value.length === 0) {
     return;
   }
+  if (value && typeof value === "object" && Array.isArray(value.items) && value.items.length === 0) {
+    return;
+  }
   throw new Error(`Expected empty ${label} result: ${JSON.stringify(value)}`);
+}
+
+function completionItems(result) {
+  if (Array.isArray(result)) {
+    return result;
+  }
+  return Array.isArray(result?.items) ? result.items : [];
 }
 
 function delay(ms) {

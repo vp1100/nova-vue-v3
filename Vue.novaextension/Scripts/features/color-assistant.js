@@ -38,6 +38,53 @@ class VueColorAssistant {
         }
         return colors;
     }
+    provideColorPresentations(color) {
+        const rgb = color.convert(ColorFormat.rgb).components;
+        const hsl = color.convert(ColorFormat.hsl).components;
+        const red = clamp(rgb[0] ?? 0, 0, 1);
+        const green = clamp(rgb[1] ?? 0, 0, 1);
+        const blue = clamp(rgb[2] ?? 0, 0, 1);
+        const alpha = clamp(rgb[3] ?? 1, 0, 1);
+        const hue = normalizeHue((hsl[0] ?? 0) * 360);
+        const saturation = clamp(hsl[1] ?? 0, 0, 1);
+        const luminance = clamp(hsl[2] ?? 0, 0, 1);
+        const presentations = [];
+        if (alpha >= 0.9995) {
+            presentations.push(createPresentation(formatHex(red, green, blue), "hex", ColorFormat.rgb), createPresentation(formatRgb(red, green, blue), "rgb", ColorFormat.rgb), createPresentation(formatHsl(hue, saturation, luminance), "hsl", ColorFormat.hsl));
+        }
+        presentations.push(createPresentation(formatHex(red, green, blue, alpha), "hexa", ColorFormat.rgb), createPresentation(formatRgb(red, green, blue, alpha), "rgba", ColorFormat.rgb), createPresentation(formatHsl(hue, saturation, luminance, alpha), "hsla", ColorFormat.hsl));
+        return presentations;
+    }
+}
+function createPresentation(label, kind, format) {
+    const presentation = new ColorPresentation(label, kind);
+    presentation.format = format;
+    presentation.usesFloats = false;
+    return presentation;
+}
+function formatHex(red, green, blue, alpha) {
+    const components = [red, green, blue, ...(alpha === undefined ? [] : [alpha])];
+    return `#${components.map(toHexByte).join("")}`;
+}
+function toHexByte(value) {
+    return Math.round(clamp(value, 0, 1) * 255).toString(16).padStart(2, "0");
+}
+function formatRgb(red, green, blue, alpha) {
+    const components = [red, green, blue].map((value) => Math.round(clamp(value, 0, 1) * 255));
+    if (alpha === undefined) {
+        return `rgb(${components.join(", ")})`;
+    }
+    return `rgba(${components.join(", ")}, ${formatDecimal(alpha)})`;
+}
+function formatHsl(hue, saturation, luminance, alpha) {
+    const components = `${formatDecimal(hue)}deg, ${formatDecimal(saturation * 100)}%, ${formatDecimal(luminance * 100)}%`;
+    if (alpha === undefined) {
+        return `hsl(${components})`;
+    }
+    return `hsla(${components}, ${formatDecimal(alpha)})`;
+}
+function formatDecimal(value) {
+    return String(Math.round(value * 1000) / 1000);
 }
 function findStyleBlocks(text) {
     const blocks = [];
@@ -98,16 +145,17 @@ function parseHexColor(value) {
         return null;
     }
     const hex = match[1];
+    const hasAlpha = hex.length === 4 || hex.length === 8;
     const expanded = hex.length <= 4
         ? [...hex].map((character) => `${character}${character}`).join("")
         : hex;
     const red = parseInt(expanded.slice(0, 2), 16) / 255;
     const green = parseInt(expanded.slice(2, 4), 16) / 255;
     const blue = parseInt(expanded.slice(4, 6), 16) / 255;
-    const alpha = expanded.length === 8 ? parseInt(expanded.slice(6, 8), 16) / 255 : 1;
+    const alpha = hasAlpha ? parseInt(expanded.slice(6, 8), 16) / 255 : 1;
     return {
         color: Color.rgb(red, green, blue, alpha),
-        kind: alpha < 1 ? "hexa" : "hex"
+        kind: hasAlpha ? "hexa" : "hex"
     };
 }
 function parseRgbColor(value) {

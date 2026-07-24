@@ -12,7 +12,8 @@ Based on the original [Vue for Nova](https://github.com/tommasongr/nova-vue) ext
 - Less, Sass, SCSS, PostCSS, and Stylus style highlighting through parser fallbacks.
 - Nova color picker support for CSS colors inside Vue `<style>` blocks.
 - Document symbols, folds, tag matching, and text checking.
-- Vue completions through Vue Language Server.
+- Vue template completions through Vue Language Server.
+- TypeScript completions, auto-imports, and signature help inside Vue script blocks.
 - Vue and TypeScript diagnostics in `.vue` files.
 - TypeScript-powered hover, Jump to Definition, Jump to Implementation, Jump to References, rename, and code actions.
 - Nuxt Jump to Definition resolves generated component declarations to their source `.vue` files.

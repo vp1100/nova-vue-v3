@@ -50,7 +50,7 @@ console.warn = (message) => {
 
 try {
   delete require.cache[require.resolve(configModulePath)];
-  const { readConfig, readCustomDataWatchPatterns, resetGlobalConfiguration, resetWorkspaceConfiguration, resolveConfigurationSection } = require(configModulePath);
+  const { readConfig, readCustomDataWatchPatterns, resetGlobalConfiguration, resetWorkspaceConfiguration } = require(configModulePath);
 
   assertEmptyOptions(readConfig, "", "empty global value");
   assertEmptyOptions(readConfig, "   \n\t  ", "whitespace global value");
@@ -92,8 +92,6 @@ try {
   globalValues.clear();
   workspaceValues.set("html.customData", ["./custom-data.json"]);
   workspaceValues.set("css.customData", ["./custom-css-data.json"]);
-  assert.deepStrictEqual(resolveConfigurationSection("html.customData"), ["./custom-data.json"]);
-  assert.deepStrictEqual(resolveConfigurationSection("css.customData"), ["./custom-css-data.json"]);
   assert.deepStrictEqual(readCustomDataWatchPatterns(), [
     "custom-data.json",
     "custom-css-data.json"
@@ -102,8 +100,7 @@ try {
   workspaceValues.set("html.customData", "./custom-data.json");
   workspaceValues.set("css.customData", { path: "./custom-css-data.json" });
   warnings.length = 0;
-  assert.deepStrictEqual(resolveConfigurationSection("html.customData"), []);
-  assert.deepStrictEqual(resolveConfigurationSection("css.customData"), []);
+  assert.deepStrictEqual(readCustomDataWatchPatterns(), []);
   assert.deepStrictEqual(warnings, [
     'invalid html.customData: expected an array of file paths, for example "html.customData": ["./custom-data.json"] in .nova/Configuration.json',
     'invalid css.customData: expected an array of file paths, for example "css.customData": ["./custom-data.json"] in .nova/Configuration.json'

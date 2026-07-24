@@ -14,12 +14,14 @@ const tsdk = path.join(serverNodeModules, "typescript", "lib");
 const vueFile = path.join(fixtureRoot, "script-type-error.vue");
 const definitionFile = path.join(fixtureRoot, "invalid-prop.vue");
 const missingImportFile = path.join(fixtureRoot, "missing-local-import.vue");
+const completionFile = path.join(fixtureRoot, "script-completion.vue");
 const expectedConfig = path.join(fixtureRoot, "tsconfig.json");
 
 let nextId = 1;
 let buffer = Buffer.alloc(0);
 const pending = new Map();
 let stderrText = "";
+let stderrLineBuffer = "";
 
 const bridge = spawn(process.execPath, [
   proxyPath,
@@ -44,6 +46,23 @@ const bridge = spawn(process.execPath, [
 
 bridge.stdout.on("data", (chunk) => {
   buffer = readMessages(buffer, chunk, (message) => {
+    if (message.id !== undefined && message.method) {
+      if (message.method === "workspace/configuration") {
+        const items = Array.isArray(message.params?.items) ? message.params.items : [];
+        writeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: items.map(() => null)
+        });
+      } else {
+        writeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: null
+        });
+      }
+      return;
+    }
     const handler = pending.get(message.id);
     if (!handler) {
       return;
@@ -60,8 +79,13 @@ bridge.stdout.on("data", (chunk) => {
 bridge.stderr.on("data", (chunk) => {
   const text = chunk.toString("utf8");
   stderrText += text;
-  if (!text.includes("[LSP]")) {
-    process.stderr.write(chunk);
+  stderrLineBuffer += text;
+  const lines = stderrLineBuffer.split("\n");
+  stderrLineBuffer = lines.pop() || "";
+  for (const line of lines) {
+    if (!line.includes("[LSP]")) {
+      process.stderr.write(`${line}\n`);
+    }
   }
 });
 
@@ -117,7 +141,18 @@ async function main() {
     capabilities: {
       textDocument: {
         hover: { contentFormat: ["markdown", "plaintext"] },
-        definition: { linkSupport: true }
+        definition: { linkSupport: true },
+        completion: {
+          completionItem: {
+            commitCharactersSupport: true,
+            insertReplaceSupport: true,
+            insertTextModeSupport: { valueSet: [1, 2] }
+          },
+          completionList: {
+            itemDefaults: ["commitCharacters", "editRange", "insertTextFormat", "insertTextMode", "data"],
+            applyKindSupport: true
+          }
+        }
       },
       workspace: {
         configuration: true
@@ -130,6 +165,17 @@ async function main() {
   }
   if (!initializeResult?.capabilities?.implementationProvider) {
     throw new Error(`Expected implementationProvider capability: ${JSON.stringify(initializeResult?.capabilities)}`);
+  }
+  if (!initializeResult?.capabilities?.completionProvider?.resolveProvider) {
+    throw new Error(`Expected completion resolve capability: ${JSON.stringify(initializeResult?.capabilities)}`);
+  }
+  for (const triggerCharacter of ["<", "a", "Z", "_", "$", "-"]) {
+    if (!initializeResult.capabilities.completionProvider.triggerCharacters?.includes(triggerCharacter)) {
+      throw new Error(`Expected Nova completion trigger ${triggerCharacter}: ${JSON.stringify(initializeResult.capabilities.completionProvider)}`);
+    }
+  }
+  if (!initializeResult?.capabilities?.signatureHelpProvider) {
+    throw new Error(`Expected signature help capability: ${JSON.stringify(initializeResult?.capabilities)}`);
   }
   notify("initialized", {});
   notify("textDocument/didOpen", {
@@ -158,6 +204,211 @@ async function main() {
       text: missingImportContent
     }
   });
+  const completionContent = fs.readFileSync(completionFile, "utf8");
+  notify("textDocument/didOpen", {
+    textDocument: {
+      uri: fileUri(completionFile),
+      languageId: "vue",
+      version: 1,
+      text: completionContent
+    }
+  });
+
+  const scriptCompletion = await request("textDocument/completion", {
+    textDocument: { uri: fileUri(completionFile) },
+    position: { line: 2, character: 6 },
+    context: {
+      triggerKind: 2,
+      triggerCharacter: "."
+    }
+  });
+  const saveCompletion = completionItems(scriptCompletion).find((item) => item.label === "save");
+  if (!saveCompletion) {
+    throw new Error(`Expected TypeScript completion for model.save: ${JSON.stringify(scriptCompletion)}`);
+  }
+  if (!saveCompletion.commitCharacters?.includes(".")) {
+    throw new Error(`Expected default TypeScript commit characters: ${JSON.stringify(saveCompletion)}`);
+  }
+  if (
+    saveCompletion.textEdit?.range?.start?.line !== 2
+    || saveCompletion.textEdit.range.start.character !== 5
+    || saveCompletion.textEdit.range.end?.line !== 2
+    || saveCompletion.textEdit.range.end.character !== 10
+    || saveCompletion.textEdit.newText !== ".save"
+    || saveCompletion.filterText !== ".save"
+  ) {
+    throw new Error(`Expected completion replacement range for model.save: ${JSON.stringify(saveCompletion)}`);
+  }
+  const resolvedSaveCompletion = await request("completionItem/resolve", saveCompletion);
+  if (!resolvedSaveCompletion?.detail?.includes("save")) {
+    throw new Error(`Expected resolved TypeScript completion details: ${JSON.stringify(resolvedSaveCompletion)}`);
+  }
+
+  notify("textDocument/didChange", {
+    textDocument: {
+      uri: fileUri(completionFile),
+      version: 2
+    },
+    contentChanges: [{
+      range: {
+        start: { line: 2, character: 6 },
+        end: { line: 2, character: 10 }
+      },
+      text: ""
+    }]
+  });
+  const emptyMemberCompletion = await request("textDocument/completion", {
+    textDocument: { uri: fileUri(completionFile) },
+    position: { line: 2, character: 6 },
+    context: {
+      triggerKind: 2,
+      triggerCharacter: "."
+    }
+  });
+  const emptyMemberSave = completionItems(emptyMemberCompletion).find((item) => item.label === "save");
+  if (
+    emptyMemberSave?.textEdit?.range?.start?.line !== 2
+    || emptyMemberSave.textEdit.range.start.character !== 5
+    || emptyMemberSave.textEdit.range.end?.line !== 2
+    || emptyMemberSave.textEdit.range.end.character !== 6
+    || emptyMemberSave.textEdit.newText !== ".save"
+    || emptyMemberSave.filterText !== ".save"
+  ) {
+    throw new Error(`Expected dot-access completion replacement range: ${JSON.stringify(emptyMemberSave)}`);
+  }
+  notify("textDocument/didChange", {
+    textDocument: {
+      uri: fileUri(completionFile),
+      version: 3
+    },
+    contentChanges: [{
+      range: {
+        start: { line: 2, character: 6 },
+        end: { line: 2, character: 6 }
+      },
+      text: "save"
+    }]
+  });
+
+  const autoImportCompletion = await request("textDocument/completion", {
+    textDocument: { uri: fileUri(missingImportFile) },
+    position: { line: 5, character: 18 },
+    context: {
+      triggerKind: 1
+    }
+  });
+  const makeTitleCompletion = completionItems(autoImportCompletion).find((item) => item.label === "makeTitle");
+  if (!makeTitleCompletion) {
+    throw new Error(`Expected TypeScript auto-import completion for makeTitle: ${JSON.stringify(autoImportCompletion)}`);
+  }
+  const resolvedMakeTitleCompletion = await request("completionItem/resolve", makeTitleCompletion);
+  if (
+    !Array.isArray(resolvedMakeTitleCompletion?.additionalTextEdits)
+    || !resolvedMakeTitleCompletion.additionalTextEdits.some((edit) => edit.newText?.includes("title-helper"))
+  ) {
+    throw new Error(`Expected auto-import edit for makeTitle: ${JSON.stringify(resolvedMakeTitleCompletion)}`);
+  }
+
+  const signatureHelp = await request("textDocument/signatureHelp", {
+    textDocument: { uri: fileUri(completionFile) },
+    position: { line: 7, character: 13 },
+    context: {
+      triggerKind: 1,
+      isRetrigger: false
+    }
+  });
+  if (
+    !Array.isArray(signatureHelp?.signatures)
+    || !signatureHelp.signatures[0]?.label?.includes("format")
+    || signatureHelp.activeParameter !== 1
+  ) {
+    throw new Error(`Expected TypeScript signature help: ${JSON.stringify(signatureHelp)}`);
+  }
+
+  notify("textDocument/didChange", {
+    textDocument: {
+      uri: fileUri(completionFile),
+      version: 4
+    },
+    contentChanges: [{
+      range: {
+        start: { line: 11, character: 3 },
+        end: { line: 11, character: 7 }
+      },
+      text: ""
+    }]
+  });
+  const templateCompletion = await request("textDocument/completion", {
+    textDocument: { uri: fileUri(completionFile) },
+    position: { line: 11, character: 3 },
+    context: {
+      triggerKind: 2,
+      triggerCharacter: "<"
+    }
+  });
+  const transitionCompletion = completionItems(templateCompletion).find((item) => item.label === "Transition");
+  if (!transitionCompletion) {
+    throw new Error(`Expected Vue template completion after merging TypeScript results: ${JSON.stringify(templateCompletion)}`);
+  }
+  if (
+    transitionCompletion.filterText !== "<Transition"
+    || transitionCompletion.insertText !== "<Transition"
+    || transitionCompletion.textEdit !== undefined
+  ) {
+    throw new Error(`Expected template completion to use Nova's dynamic insertion range: ${JSON.stringify(transitionCompletion)}`);
+  }
+  notify("textDocument/didChange", {
+    textDocument: {
+      uri: fileUri(completionFile),
+      version: 5
+    },
+    contentChanges: [{
+      range: {
+        start: { line: 11, character: 3 },
+        end: { line: 11, character: 3 }
+      },
+      text: "T"
+    }]
+  });
+  const triggeredTemplateCompletion = await request("textDocument/completion", {
+    textDocument: { uri: fileUri(completionFile) },
+    position: { line: 11, character: 4 },
+    context: {
+      triggerKind: 2,
+      triggerCharacter: "T"
+    }
+  });
+  if (!completionItems(triggeredTemplateCompletion).some((item) => item.label === "Transition")) {
+    throw new Error(`Expected Vue template completion on a tag-name trigger: ${JSON.stringify(triggeredTemplateCompletion)}`);
+  }
+  notify("textDocument/didChange", {
+    textDocument: {
+      uri: fileUri(completionFile),
+      version: 6
+    },
+    contentChanges: [{
+      range: {
+        start: { line: 11, character: 2 },
+        end: { line: 11, character: 7 }
+      },
+      text: "<main></"
+    }]
+  });
+  const closingTagCompletion = await request("textDocument/completion", {
+    textDocument: { uri: fileUri(completionFile) },
+    position: { line: 11, character: 10 },
+    context: {
+      triggerKind: 2,
+      triggerCharacter: "/"
+    }
+  });
+  const closeMainCompletion = completionItems(closingTagCompletion).find((item) => item.label === "/main");
+  if (
+    closeMainCompletion?.filterText !== "/main"
+    || closeMainCompletion.textEdit?.newText !== "/main>"
+  ) {
+    throw new Error(`Expected closing-tag completion to keep Volar's slash insertion: ${JSON.stringify(closeMainCompletion)}`);
+  }
 
   const hover = await request("textDocument/hover", {
     textDocument: { uri: fileUri(vueFile) },
@@ -298,6 +549,13 @@ function writeMessage(message) {
 
 function fileUri(file) {
   return `file://${encodeURI(file).replace(/#/g, "%23")}`;
+}
+
+function completionItems(result) {
+  if (Array.isArray(result)) {
+    return result;
+  }
+  return Array.isArray(result?.items) ? result.items : [];
 }
 
 function readMessages(currentBuffer, chunk, callback) {

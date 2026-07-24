@@ -1,4 +1,7 @@
 declare const nova: {
+  readonly version: number[];
+  readonly versionString: string;
+  readonly systemVersion: number[];
   extension: {
     identifier: string;
     name: string;
@@ -40,6 +43,7 @@ declare const nova: {
   assistants: {
     registerColorAssistant(selector: string | { syntax: string } | Array<string | { syntax: string }>, object: ColorAssistant): Disposable;
   };
+  openConfig(identifier?: string): void;
 };
 
 interface Disposable {
@@ -92,10 +96,15 @@ interface TextEditorEdit {
 
 interface ColorAssistant {
   provideColors(editor: TextEditor, context: ColorInformationContext): ColorInformation[] | Promise<ColorInformation[]>;
+  provideColorPresentations(color: Color, editor: TextEditor, context: ColorPresentationContext): ColorPresentation[] | Promise<ColorPresentation[]>;
 }
 
 interface ColorInformationContext {
   readonly candidates: ColorCandidate[];
+}
+
+interface ColorPresentationContext {
+  readonly range: Range;
 }
 
 interface ColorCandidate {
@@ -128,6 +137,12 @@ declare class ColorInformation {
   color: Color;
   kind?: string;
   range: Range;
+  usesFloats?: boolean;
+}
+
+declare class ColorPresentation {
+  constructor(label: string, kind?: string);
+  format?: ColorFormat;
   usesFloats?: boolean;
 }
 

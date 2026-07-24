@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.5
+
+- Updated Nova environment, settings, color assistant, and language client integration for Nova 14.
+- Added explicit TypeScript overlay capabilities for hover, definitions, implementations, references, and rename.
+- Added TypeScript completions, auto-import completion edits, and signature help inside Vue script blocks.
+- Kept Vue template completions by merging them with TypeScript completion results and using Nova-compatible dynamic insertion for opening tags.
+- Added identifier completion triggers so automatic suggestions refresh while typing JavaScript and Vue component names.
+- Preserved TypeScript completion replacement ranges and commit characters so Nova can display and insert completion items correctly.
+- Fixed TypeScript bridge status reporting and cleaned up stopped clients so the language server can restart reliably.
+- Removed the unsupported custom handler for the core `workspace/configuration` LSP request.
+
 ## 0.1.4
 
 - Removed clipboard permissions by dropping the debug-info and LSP-capabilities copy commands.
